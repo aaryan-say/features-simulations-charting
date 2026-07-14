@@ -185,7 +185,10 @@
   </div>
   <div class="tabs">
     <button class="tab active" data-view="prd">PRD</button>
-    <button class="tab" data-view="sim">Live Simulation</button>
+    <button class="tab" data-view="sim">Footprint</button>
+    <button class="tab" data-view="delta">Delta Strip</button>
+    <button class="tab" data-view="cvd">CVD</button>
+    <button class="tab" data-view="bubbles">Large Trades</button>
   </div>
 </header>
 
@@ -407,6 +410,62 @@
         </div>
       </div>
       <div class="note"><b>Real-time cadence:</b> a candle closes after its selected timeframe of real elapsed time, so on 5m a new column appears every ~5 minutes, on 1m every ~1 minute, on 15m every ~15 minutes. The LIVE column keeps ticking with new trades the whole interval and its header shows progress (LIVE 0% to 100%); closed candles freeze and never move. Pausing stops the clock. Scroll left/right for history, up/down for price levels. Every number is produced by running the real quote-rule classifier and price-level aggregation on a synthetic trade tape; only the raw ticks are fake.</div>
+    </div>
+  </section>
+
+  <!-- ============ DELTA STRIP ============ -->
+  <section class="view" id="view-delta">
+    <div class="sim-wrap">
+      <div class="sim-shell">
+        <div class="sim-head">
+          <div><span class="inst">Candle Delta Strip</span> <span class="muted">Δ per candle</span></div>
+          <span class="badge-live"><span class="pulse"></span>LIVE</span>
+        </div>
+        <div style="padding:16px 16px 10px"><div id="deltaChart"></div></div>
+        <div class="legend">
+          <span>Candlesticks on top, per-candle delta (buy minus sell) as a histogram below the zero line.</span>
+          <span><span class="sw" style="background:var(--poc)"></span>Divergence flag</span>
+        </div>
+      </div>
+      <div class="note">In v1 this is the footprint's per-candle delta surfaced as its own strip (header toggle, on by default). It is derived from the same data, no extra backend. This panel is an illustrative mock of the standalone view.</div>
+    </div>
+  </section>
+
+  <!-- ============ CVD ============ -->
+  <section class="view" id="view-cvd">
+    <div class="sim-wrap">
+      <div class="sim-shell">
+        <div class="sim-head">
+          <div><span class="inst">Cumulative Volume Delta</span> <span class="muted">CVD</span></div>
+          <span class="badge-live"><span class="pulse"></span>LIVE</span>
+        </div>
+        <div style="padding:16px"><div id="cvdChart"></div></div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--accent)"></span>Price</span>
+          <span><span class="sw" style="background:var(--poc)"></span>Cumulative delta</span>
+          <span>Price rising while CVD falls flags hidden distribution (divergence).</span>
+        </div>
+      </div>
+      <div class="note">Optional in v1. A running sum of per-candle delta. For F&amp;O this may be served by the existing <span class="mono" style="background:var(--panel2);padding:0 4px;border-radius:4px">cumulative_volume_delta</span> field; cash equities are covered by the footprint data. Illustrative mock.</div>
+    </div>
+  </section>
+
+  <!-- ============ LARGE TRADE BUBBLES ============ -->
+  <section class="view" id="view-bubbles">
+    <div class="sim-wrap">
+      <div class="sim-shell">
+        <div class="sim-head">
+          <div><span class="inst">Large Trade Bubbles</span> <span class="muted">Size = trade size</span></div>
+          <span class="badge-live"><span class="pulse"></span>LIVE</span>
+        </div>
+        <div style="padding:16px"><div id="bubbleChart"></div></div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--buy)"></span>Aggressive buy</span>
+          <span><span class="sw" style="background:var(--sell)"></span>Aggressive sell</span>
+          <span>Bigger bubble = bigger single trade, plotted at its price and time.</span>
+        </div>
+      </div>
+      <div class="note"><b>Deferred to v2.</b> Unlike the others, this needs the raw tick-by-tick tape (individual trade sizes), so it only works if backend delivers Option A. It is distinct from Point of Control. Illustrative mock.</div>
     </div>
   </section>
 </main>
@@ -686,6 +745,80 @@ function activateView(v) {
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateView(t.dataset.view)));
 document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => { window.scrollTo(0,0); activateView(b.dataset.jump); }));
+
+// ---- sub-feature illustrative mocks (Delta Strip / CVD / Large Trade Bubbles) ----
+// Self-contained SVG builders, isolated so their helper names don't collide with the footprint engine.
+(function () {
+  const W = 900;
+  function mkrng(seed) { let s = seed; return () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function mkCandles(n, start, vol, seed) { const r = mkrng(seed); const out = []; let p = start; for (let i = 0; i < n; i++) { const o = p; const c = o + (r() - 0.45) * vol; const hi = Math.max(o, c) + r() * vol * 0.5; const lo = Math.min(o, c) - r() * vol * 0.5; out.push({ o, c, hi, lo }); p = c; } return out; }
+  function num(v) { return (Math.round(v * 10) / 10).toString(); }
+  function candleChart(cs, H) {
+    let lo = Infinity, hi = -Infinity;
+    cs.forEach(c => { lo = Math.min(lo, c.lo); hi = Math.max(hi, c.hi); });
+    const pad = (hi - lo) * 0.12 || 1; lo -= pad; hi += pad;
+    const n = cs.length, slot = W / n, cw = Math.max(6, slot * 0.5);
+    const y = v => H - ((v - lo) / (hi - lo)) * H, x = i => i * slot + slot / 2;
+    let s = "";
+    cs.forEach((c, i) => {
+      const up = c.c >= c.o, col = up ? "var(--buy)" : "var(--sell)";
+      s += `<line x1="${num(x(i))}" x2="${num(x(i))}" y1="${num(y(c.hi))}" y2="${num(y(c.lo))}" stroke="${col}" stroke-width="1.6"/>`;
+      const yt = y(Math.max(c.o, c.c)), hh = Math.max(3, Math.abs(y(c.o) - y(c.c)));
+      s += `<rect x="${num(x(i) - cw / 2)}" y="${num(yt)}" width="${num(cw)}" height="${num(hh)}" rx="1.5" fill="${col}"/>`;
+    });
+    return { s, x, y };
+  }
+  function band(vals, topPx, botPx) { let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.15 || 1; lo -= pad; hi += pad; return v => botPx - ((v - lo) / (hi - lo)) * (botPx - topPx); }
+
+  // Delta Strip: candles on top, delta histogram below
+  (function () {
+    const H1 = 160, H2 = 66, cs = mkCandles(11, 120, 10, 101), cc = candleChart(cs, H1);
+    const deltas = cs.map((c, i) => Math.round((c.c - c.o) * 22 + ((i % 3) - 1) * 28));
+    const divIdx = 4; deltas[divIdx] = -Math.round(Math.abs(deltas[divIdx]) * 0.45 + 10);
+    const n = deltas.length, slot = W / n, bw = Math.max(6, slot * 0.5), max = Math.max(...deltas.map(d => Math.abs(d)), 1), mid = H2 / 2;
+    let hs = `<line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--line2)" stroke-width="1"/>`;
+    deltas.forEach((d, i) => {
+      const h = Math.abs(d) / max * (mid - 5), col = i === divIdx ? "var(--poc)" : d >= 0 ? "var(--buy)" : "var(--sell)", yy = d >= 0 ? mid - h : mid;
+      hs += `<rect x="${num(i * slot + slot / 2 - bw / 2)}" y="${num(yy)}" width="${num(bw)}" height="${num(h)}" rx="1.5" fill="${col}"/>`;
+      if (i === divIdx) hs += `<text x="${num(i * slot + slot / 2)}" y="${H2 - 2}" font-size="10" text-anchor="middle" fill="var(--poc)">!</text>`;
+    });
+    const el = document.getElementById("deltaChart");
+    if (el) el.innerHTML =
+      `<svg viewBox="0 0 ${W} ${H1}" style="width:100%;height:auto;display:block">${cc.s}</svg>` +
+      `<div style="font-size:10px;color:var(--ink3);margin:8px 0 2px">Delta (buy minus sell) per candle</div>` +
+      `<svg viewBox="0 0 ${W} ${H2}" style="width:100%;height:auto;display:block">${hs}</svg>`;
+  })();
+
+  // CVD: price line (upper) vs cumulative delta line (lower), with a divergence zone
+  (function () {
+    const H = 240, price = [10, 13, 12, 17, 21, 20, 25, 29, 27, 33], cvd = [6, 10, 15, 11, 7, 1, -5, -12, -20, -28];
+    const n = price.length, x = i => i / (n - 1) * W, yP = band(price, 0.10 * H, 0.44 * H), yC = band(cvd, 0.56 * H, 0.92 * H);
+    const pPath = price.map((v, i) => `${i ? "L" : "M"} ${num(x(i))} ${num(yP(v))}`).join(" ");
+    const pArea = `${pPath} L ${W} ${num(0.44 * H)} L 0 ${num(0.44 * H)} Z`;
+    const cPath = cvd.map((v, i) => `${i ? "L" : "M"} ${num(x(i))} ${num(yC(v))}`).join(" ");
+    const dz = x(5), mi = 8;
+    let s = `<rect x="${num(dz)}" y="0" width="${num(W - dz)}" height="${H}" fill="var(--poc)" opacity="0.07"/>`;
+    s += `<path d="${pArea}" fill="var(--accent)" opacity="0.10"/>`;
+    s += `<path d="${pPath}" fill="none" stroke="var(--accent)" stroke-width="2.4"/>`;
+    s += `<path d="${cPath}" fill="none" stroke="var(--poc)" stroke-width="2.4"/>`;
+    s += `<circle cx="${num(x(mi))}" cy="${num(yC(cvd[mi]))}" r="4.5" fill="var(--poc)"/>`;
+    s += `<text x="${num(x(mi))}" y="${num(yC(cvd[mi]) - 10)}" font-size="12" text-anchor="middle" fill="var(--poc)">Divergence</text>`;
+    s += `<text x="8" y="${num(0.10 * H)}" font-size="11" fill="var(--ink3)">Price</text>`;
+    s += `<text x="8" y="${num(0.56 * H + 2)}" font-size="11" fill="var(--ink3)">CVD</text>`;
+    const el = document.getElementById("cvdChart");
+    if (el) el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${s}</svg>`;
+  })();
+
+  // Large Trade Bubbles: candles with size-scaled bubbles by aggressor side
+  (function () {
+    const H = 260, cs = mkCandles(11, 120, 11, 202), cc = candleChart(cs, H);
+    const bubs = [{ i: 1, side: "sell", r: 13 }, { i: 3, side: "buy", r: 22 }, { i: 5, side: "buy", r: 30 }, { i: 7, side: "sell", r: 17 }, { i: 8, side: "buy", r: 25 }, { i: 9, side: "sell", r: 15 }];
+    let s = cc.s;
+    bubs.forEach(b => { const c = cs[b.i], pr = b.side === "buy" ? c.hi : c.lo, col = b.side === "buy" ? "var(--buy)" : "var(--sell)"; s += `<circle cx="${num(cc.x(b.i))}" cy="${num(cc.y(pr))}" r="${b.r}" fill="${col}" opacity="0.45"/><circle cx="${num(cc.x(b.i))}" cy="${num(cc.y(pr))}" r="${b.r}" fill="none" stroke="${col}" stroke-width="1.5" opacity="0.8"/>`; });
+    const el = document.getElementById("bubbleChart");
+    if (el) el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${s}</svg>`;
+  })();
+})();
 
 // ---- boot ----
 fillSymbols();
