@@ -129,7 +129,7 @@
   .golive .gd { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: pulse 1.4s infinite; }
   .price-col { position: sticky; left: 0; z-index: 5; background: var(--panel); border-right: 1px solid var(--line2); }
   .price-col .phead, .cand .chead { height: 40px; }
-  .cand .cfoot, .price-col .pfoot { height: 60px; }
+  .cand .cfoot, .price-col .pfoot { height: 88px; }
   .chead { position: sticky; top: 0; z-index: 4; background: var(--panel2); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 4px 6px; font-size: 10px; color: var(--ink2); text-align: center; display: flex; align-items: center; justify-content: center; }
   .price-col .phead { position: sticky; top: 0; z-index: 6; background: var(--panel2); border-bottom: 1px solid var(--line); font-size: 10px; color: var(--ink3); }
   .lvl-label { display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; font-size: 11px; color: var(--ink3); border-bottom: 1px dashed var(--line); }
@@ -152,10 +152,11 @@
   .cfoot .d.pos { color: var(--buy); }
   .cfoot .d.neg { color: var(--sell); }
   .cfoot .tv, .cfoot .tm { font-size: 9px; color: var(--ink3); }
-  .cfoot .dwrap { position: relative; width: 100%; height: 22px; margin: 2px 0; display: none; }
+  .cfoot .dwrap { position: relative; width: 100%; height: 52px; margin: 2px 0; display: none; }
   .sim-shell.strip .cfoot .dwrap { display: block; }
-  .cfoot .dwrap .zl { position: absolute; left: 4px; right: 4px; top: 11px; height: 1px; background: var(--line2); }
-  .cfoot .dwrap .db { position: absolute; left: 50%; transform: translateX(-50%); width: 10px; border-radius: 2px; }
+  .cfoot .dwrap .zl { position: absolute; left: 4px; right: 4px; top: 26px; height: 1px; background: var(--line2); }
+  .cfoot .dwrap .db { position: absolute; left: 50%; transform: translateX(-50%); width: 28px; border-radius: 2px; }
+  .cfoot .dwrap .dwarn { position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%); font-size: 9px; line-height: 1; color: var(--poc); }
   .cand.live .chead { color: var(--buy); font-weight: 700; }
   .cand.live { background: rgba(15,157,88,.03); }
 
@@ -581,13 +582,15 @@ function cellsHTML(c, isLive, ltpLevel) {
 }
 const maxAbsDelta = () => Math.max(1, ...candles.map(c => Math.abs(c.delta)));
 function footHTML(c) {
-  const dcls = c.delta >= 0 ? "pos" : "neg";
   const up = c.delta >= 0;
-  const h = Math.round(Math.abs(c.delta) / maxAbsDelta() * 10);    // px above/below the zero line
-  const col = up ? "var(--buy)" : "var(--sell)";
-  const bar = (up ? "bottom:11px;height:" : "top:11px;height:") + h + "px";   // up = green, down = red
-  return "<span class='d " + dcls + " mono'>Δ " + (up ? "+" : "") + compact(c.delta) + "</span>" +
-         "<div class='dwrap'><div class='zl'></div><div class='db' style='" + bar + ";background:" + col + "'></div></div>" +
+  const h = Math.round(Math.abs(c.delta) / maxAbsDelta() * 22);    // px above/below the zero line
+  const priceUp = c.close >= c.open;
+  const diverg = (priceUp !== up) && Math.abs(c.delta) >= 0.45 * maxAbsDelta();   // delta disagrees with candle direction
+  const col = diverg ? "var(--poc)" : up ? "var(--buy)" : "var(--sell)";          // amber on divergence
+  const bar = (up ? "bottom:26px;height:" : "top:26px;height:") + h + "px";       // up = green, down = red
+  const warn = diverg ? "<span class='dwarn'>&#9888;</span>" : "";
+  return "<span class='d " + (up ? "pos" : "neg") + " mono'>Δ " + (up ? "+" : "") + compact(c.delta) + "</span>" +
+         "<div class='dwrap'><div class='zl'></div><div class='db' style='" + bar + ";background:" + col + "'></div>" + warn + "</div>" +
          "<span class='tv mono'>V " + compact(c.totalVol) + "</span>";
 }
 function updateHeader() {
@@ -614,7 +617,7 @@ function buildGrid() {
   const pin = scrollEl.scrollWidth <= scrollEl.clientWidth || scrollEl.scrollLeft + scrollEl.clientWidth >= scrollEl.scrollWidth - CAND_W * 2;
   let html = "<div class='price-col' style='width:64px'><div class='phead chead'>Price</div>";
   for (const lv of axisArr) html += "<div class='lvl-label mono" + (lv === ltpLevel ? " ltp" : "") + "' style='height:" + ROW_H + "px'>" + fmt(lv) + "</div>";
-  html += "<div class='pfoot' style='height:60px;border-top:1px solid var(--line2)'></div></div>";
+  html += "<div class='pfoot' style='height:88px;border-top:1px solid var(--line2)'></div></div>";
   candles.forEach((c, idx) => {
     const isLive = idx === candles.length - 1;
     html += "<div class='cand" + (isLive ? " live" : "") + "' style='width:" + CAND_W + "px'" + (isLive ? " id='liveCol'" : "") + ">";
