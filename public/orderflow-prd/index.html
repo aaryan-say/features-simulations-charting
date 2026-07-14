@@ -485,7 +485,7 @@ function runBatch(n) {
 // trades scale with candle length so a 15m candle carries more volume than a 1m candle
 function backfillCandle() { newCandle(); runBatch(Math.round(tfSec * rand(2.5, 4.5))); }
 // live candle progress (0-100%) through its real-time interval, for the LIVE header cue
-const liveHead = () => "LIVE " + Math.min(100, Math.round(candleElapsed / tfSec * 100)) + "%";
+const liveHead = () => candleClock(candles[candles.length - 1].i) + " · " + Math.min(100, Math.round(candleElapsed / tfSec * 100)) + "%";
 
 // ---- FROZEN price axis (historical columns never move) ----
 const scrollEl = $("scroll"), innerEl = $("inner"), tip = $("tip");
@@ -518,8 +518,7 @@ function cellsHTML(c, isLive, ltpLevel) {
 function footHTML(c) {
   const dcls = c.delta >= 0 ? "pos" : "neg";
   return "<span class='d " + dcls + " mono'>Δ " + (c.delta >= 0 ? "+" : "") + compact(c.delta) + "</span>" +
-         "<span class='tv mono'>V " + compact(c.totalVol) + "</span>" +
-         "<span class='tm mono'>" + candleClock(c.i) + "</span>";
+         "<span class='tv mono'>V " + compact(c.totalVol) + "</span>";
 }
 function updateHeader() {
   $("headSym").textContent = inst.sym;
@@ -549,7 +548,7 @@ function buildGrid() {
   candles.forEach((c, idx) => {
     const isLive = idx === candles.length - 1;
     html += "<div class='cand" + (isLive ? " live" : "") + "' style='width:" + CAND_W + "px'" + (isLive ? " id='liveCol'" : "") + ">";
-    html += "<div class='chead'>" + (isLive ? liveHead() : "#" + c.i) + "</div>" + cellsHTML(c, isLive, ltpLevel) + "<div class='cfoot'>" + footHTML(c) + "</div></div>";
+    html += "<div class='chead'>" + (isLive ? liveHead() : candleClock(c.i)) + "</div>" + cellsHTML(c, isLive, ltpLevel) + "<div class='cfoot'>" + footHTML(c) + "</div></div>";
   });
   innerEl.innerHTML = html;
   liveColEl = $("liveCol");
