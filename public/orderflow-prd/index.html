@@ -123,6 +123,10 @@
   .fp-wrap { position: relative; }
   .fp-scroll { overflow: auto; max-height: 560px; position: relative; }
   .fp-inner { display: inline-flex; position: relative; }
+  .golive { position: absolute; bottom: 12px; right: 16px; z-index: 20; display: none; align-items: center; gap: 7px; background: var(--accent); color: #fff; border: none; border-radius: 999px; padding: 8px 15px; font-size: 12px; font-weight: 650; cursor: pointer; box-shadow: 0 4px 16px rgba(37,99,235,.4); }
+  .golive.show { display: inline-flex; }
+  .golive:hover { filter: brightness(1.08); }
+  .golive .gd { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: pulse 1.4s infinite; }
   .price-col { position: sticky; left: 0; z-index: 5; background: var(--panel); border-right: 1px solid var(--line2); }
   .price-col .phead, .cand .chead { height: 40px; }
   .cand .cfoot, .price-col .pfoot { height: 46px; }
@@ -358,6 +362,7 @@
 
         <div class="fp-wrap">
           <div class="fp-scroll" id="scroll"><div class="fp-inner" id="inner"></div></div>
+          <button class="golive" id="goLive"><span class="gd"></span>Go Live</button>
           <div class="disabled-state" id="disabled" style="display:none">
             <div class="big">Order flow unavailable for indices</div>
             <div>An index spot has no order book of its own, so bid/ask traded volume cannot be computed.<br/>Open an index <b>future</b> or <b>option</b> instead to see the footprint.</div>
@@ -452,7 +457,7 @@ function applyTrade(c, trade) {
   c.low = Math.min(c.low, trade.price);
   c.close = trade.price;
   // intra-candle oscillation (OU around this candle's centre) => candles span ~8-10 levels
-  liveMid += -0.05 * (liveMid - candleCenter) + gauss() * inst.row * 0.72;
+  liveMid += -0.06 * (liveMid - candleCenter) + gauss() * inst.row * 0.55;
 }
 function finalize(c) {
   let delta = 0, tot = 0, pocLvl = null, pocVol = -1;
@@ -465,7 +470,7 @@ function finalize(c) {
 }
 function newCandle() {
   // slow candle-to-candle trend of the centre (keeps adjacent candles overlapping)
-  candleCenter += gauss() * inst.row * 0.6 + (inst.base - candleCenter) * 0.03;
+  candleCenter += gauss() * inst.row * 0.4 + (inst.base - candleCenter) * 0.06;
   const c = { i: candleIdx++, open: liveMid, high: liveMid, low: liveMid, close: liveMid, levels: new Map(), delta: 0, totalVol: 0, poc: null };
   candles.push(c);
   if (candles.length > MAX_CANDLES) candles.shift();
@@ -488,7 +493,7 @@ let axisTop = null, axisBot = null, axisArr = [], liveColEl = null;
 function computeAxis() {
   let hi = -Infinity, lo = Infinity;
   for (const c of candles) { hi = Math.max(hi, c.high); lo = Math.min(lo, c.low); }
-  const m = 8 * rowSize();
+  const m = 2 * rowSize();   // small padding above/below the traded range (keeps the ladder compact)
   axisTop = levelOf(hi) + m; axisBot = levelOf(lo) - m;
   const n = Math.round((axisTop - axisBot) / rowSize()) + 1;
   axisArr = [];
@@ -551,6 +556,7 @@ function buildGrid() {
   attachTips(innerEl);
   if (pin) scrollEl.scrollLeft = scrollEl.scrollWidth;
   updateHeader();
+  updateGoLive();
 }
 function renderLiveColumn() {
   if (!inst.hasBook || !liveColEl) return;
@@ -625,13 +631,22 @@ function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add
 $("buyBtn").addEventListener("click", () => toast("Simulated BUY 1 lot @ " + fmt(levelOf(liveMid) + inst.tick) + " (demo only, no order placed)"));
 $("sellBtn").addEventListener("click", () => toast("Simulated SELL 1 lot @ " + fmt(levelOf(liveMid) - inst.tick) + " (demo only, no order placed)"));
 
+// ---- follow-live / Go Live control ----
+const goLiveBtn = $("goLive");
+function isNearRight() { return scrollEl.scrollLeft + scrollEl.clientWidth >= scrollEl.scrollWidth - CAND_W * 1.5; }
+function updateGoLive() { goLiveBtn.classList.toggle("show", inst.hasBook && !isNearRight()); }
+function scrollToLive() { scrollEl.scrollLeft = scrollEl.scrollWidth; updateGoLive(); }
+scrollEl.addEventListener("scroll", updateGoLive);
+goLiveBtn.addEventListener("click", scrollToLive);
+
 // tabs + jump buttons
 function activateView(v) {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x.dataset.view === v));
   document.querySelectorAll(".view").forEach(x => x.classList.toggle("active", x.id === "view-" + v));
+  if (v === "sim") requestAnimationFrame(scrollToLive); // sim was hidden; snap to the live candle once visible
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateView(t.dataset.view)));
-document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => { activateView(b.dataset.jump); window.scrollTo(0,0); }));
+document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => { window.scrollTo(0,0); activateView(b.dataset.jump); }));
 
 // ---- boot ----
 fillSymbols();
