@@ -124,7 +124,7 @@
 
       <h2 class="sec"><span class="n">1</span>Summary</h2>
       <p>Two features built on the order book (resting bid/ask liquidity, "market depth"): the <b>DOM Imbalance Meter</b> (total bid vs total ask liquidity as a single gauge) and the <b>DOM Heatmap</b> (how much liquidity sits at each price level across recent snapshots, Bookmap-style).</p>
-      <p>Unlike the order-flow / footprint cluster, which needs the executed-trade tape Nubra does not yet expose, these read the <b>order book</b>, which Nubra already streams up to <b>20 levels</b> live. The headline finding: <b>this cluster is largely buildable on existing APIs today.</b> The only new dependency is optional (historical L2 depth, and only for heatmap replay).</p>
+      <p>Both read the <b>order book</b> (resting depth), which Nubra already streams up to <b>20 levels</b> live. The headline finding: <b>this cluster is largely buildable on existing APIs today.</b> The only new dependency is optional (historical L2 depth, and only for heatmap replay).</p>
 
       <h2 class="sec"><span class="n">2</span>Feature scope &amp; expectations</h2>
       <div>
@@ -209,7 +209,7 @@
           <li><b>Confirm 20-level depth in PROD.</b> We have verified 5 levels live; docs say up to 20. Confirm the full 20 levels stream in production for the instruments we care about.</li>
           <li><b>Optional: a historical L2 depth feed</b>, only if we want heatmap replay / backfill. Not needed for the live heatmap.</li>
         </ul>
-        <p style="margin-bottom:0"><b>Contrast:</b> the order-flow cluster (footprint, delta, CVD, bubbles) is blocked on the missing trade tape. This DOM cluster is not: it rides the order book, which already exists.</p>
+        <p style="margin-bottom:0">Both features ride the order book, which already exists as a live feed, so the cluster needs little to no backend work to ship.</p>
       </div>
 
       <h2 class="sec"><span class="n">8</span>Open questions</h2>
@@ -228,7 +228,6 @@
         <li>The heatmap is render-heavy on mobile; desktop-first.</li>
         <li>Live-only heatmap has no memory before subscription; replay needs the optional historical feed.</li>
       </ul>
-      <a class="xref" href="../orderflow-prd/">See also: Order Flow / Footprint PRD</a>
     </div>
   </section>
 
@@ -331,7 +330,7 @@ function mTick() {
   mBias = Math.max(-0.4, Math.min(0.4, mBias + (rng() - 0.5) * 0.12));
   if (!mInst.hasBook) {
     $("mMeta").textContent = "Index has no order book";
-    $("mVal").textContent = "N/A"; $("mExtreme").textContent = "Order flow unavailable for indices";
+    $("mVal").textContent = "N/A"; $("mExtreme").textContent = "Order book unavailable for indices";
     $("mArc").setAttribute("stroke-dashoffset", "283"); $("mBid").textContent = "0"; $("mAsk").textContent = "0";
     return;
   }
@@ -360,7 +359,7 @@ function hReset() { hCols = []; for (let i = 0; i < HEAT_SNAPS; i++) hCols.push(
 function hTick() { if (!hRunning || !hInst.hasBook) return; hCols.push(heatSnapshot(hInst)); if (hCols.length > HEAT_SNAPS) hCols.shift(); hRender(); }
 function hRender() {
   const t = $("heatTable");
-  if (!hInst.hasBook) { t.innerHTML = "<tr><td style='padding:40px;color:var(--ink2);text-align:center' colspan='6'><b>Order flow unavailable for indices</b><br>An index spot has no order book. Try an index future or option.</td></tr>"; return; }
+  if (!hInst.hasBook) { t.innerHTML = "<tr><td style='padding:40px;color:var(--ink2);text-align:center' colspan='6'><b>Order book unavailable for indices</b><br>An index spot has no order book. Try an index future or option.</td></tr>"; return; }
   const levels = heatLevels(hInst), labels = ["T-4", "T-3", "T-2", "T-1", "T0"];
   const max = Math.max(1, ...hCols.flat());
   let html = "<tr><th></th>" + labels.map(l => "<th>" + l + "</th>").join("") + "</tr>";
