@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OI Positioning Cycle: PRD + Simulation</title>
+<style>
+  :root {
+    --bg:#f6f7f9; --panel:#fff; --panel2:#f1f3f5; --line:#e3e6ea; --line2:#d3d8de;
+    --ink:#1c2430; --ink2:#515c6b; --ink3:#8a94a2;
+    --buy:#0f9d58; --buy-bg:rgba(15,157,88,.10); --buy-ink:#0a6b3b;
+    --sell:#d13438; --sell-bg:rgba(209,52,56,.09); --sell-ink:#a01418;
+    --amber:#b8770a; --amber-bg:rgba(184,119,10,.12);
+    --accent:#2563eb; --accent-bg:rgba(37,99,235,.10);
+  }
+  * { box-sizing:border-box; } html,body { margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.55; }
+  .mono { font-variant-numeric:tabular-nums; font-family:"SF Mono","Cascadia Mono",Consolas,monospace; }
+  header { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.94); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); padding:10px 22px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand .dot { width:8px; height:8px; border-radius:50%; background:var(--amber); }
+  .brand h1 { font-size:15px; margin:0; font-weight:650; }
+  .brand .sub { font-size:11px; color:var(--ink3); }
+  .tabs { display:flex; gap:4px; margin-left:auto; }
+  .tab { background:transparent; border:1px solid transparent; color:var(--ink2); padding:6px 14px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:550; }
+  .tab:hover { color:var(--ink); background:var(--panel2); }
+  .tab.active { color:var(--accent); background:#eaf1fe; border-color:#c9ddfb; }
+  .badge-live { display:inline-flex; align-items:center; gap:6px; font-size:10px; color:var(--buy); border:1px solid rgba(15,157,88,.3); background:var(--buy-bg); padding:3px 8px; border-radius:999px; }
+  .badge-live .pulse { width:6px; height:6px; border-radius:50%; background:var(--buy); animation:pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  main { padding:22px; } .view { display:none; } .view.active { display:block; }
+
+  .doc { max-width:940px; margin:0 auto; }
+  .doc-title { font-size:24px; font-weight:700; margin:4px 0 8px; }
+  .doc h2.sec { font-size:15px; margin:30px 0 10px; padding-bottom:7px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:9px; }
+  .doc h2.sec .n { color:var(--accent); font-weight:700; font-size:13px; }
+  .doc h3 { font-size:13px; margin:16px 0 6px; }
+  .doc p { margin:8px 0; color:var(--ink2); } .doc ul { margin:6px 0; padding-left:20px; color:var(--ink2); } .doc li { margin:4px 0; }
+  .doc b { color:var(--ink); }
+  .doc .mono { background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:12px; }
+  table.req { width:100%; border-collapse:collapse; font-size:13px; margin:10px 0; background:var(--panel); }
+  table.req th, table.req td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  table.req th { background:var(--panel2); font-weight:600; color:var(--ink); font-size:12px; }
+  table.req td { color:var(--ink2); } table.req td:first-child { font-weight:600; color:var(--ink); }
+  .lab { display:inline-block; font-size:11px; font-weight:650; padding:1px 7px; border-radius:5px; white-space:nowrap; }
+  .lab.ok { color:var(--buy-ink); background:var(--buy-bg); border:1px solid rgba(15,157,88,.3); }
+  .lab.gap { color:var(--sell-ink); background:var(--sell-bg); border:1px solid rgba(209,52,56,.3); }
+  .lab.partial { color:#8a5a00; background:var(--amber-bg); border:1px solid rgba(184,119,10,.3); }
+  .pill { display:inline-block; font-size:11px; padding:2px 9px; border-radius:999px; border:1px solid var(--line2); color:var(--ink2); margin:2px 5px 2px 0; background:var(--panel); }
+  .pill.in { border-color:rgba(15,157,88,.35); color:var(--buy-ink); background:var(--buy-bg); }
+  .pill.out { border-color:rgba(209,52,56,.3); color:var(--sell-ink); background:var(--sell-bg); }
+  .callout { border:1px solid var(--line2); border-left:3px solid var(--accent); background:#f8faff; border-radius:8px; padding:12px 16px; margin:12px 0; }
+  .callout h3 { margin-top:0; }
+  .btn-jump { display:inline-block; margin-top:6px; background:var(--accent); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+
+  .sim-wrap { max-width:1080px; margin:0 auto; }
+  .sim-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .ctl { display:flex; align-items:center; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:5px 8px; }
+  .ctl label { font-size:11px; color:var(--ink3); text-transform:uppercase; letter-spacing:.4px; }
+  select, .btn { background:var(--panel); color:var(--ink); border:1px solid var(--line2); border-radius:6px; padding:5px 8px; font-size:13px; font-family:inherit; cursor:pointer; }
+  .btn:hover { border-color:var(--accent); }
+  .sim-shell { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+  .sim-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .sim-head .inst { font-weight:650; font-size:15px; } .sim-head .muted { color:var(--ink3); font-size:11px; }
+  .sim-body { display:flex; gap:8px; flex-wrap:wrap; padding:14px; }
+  .sim-body .chart { flex:1 1 560px; min-width:340px; } .sim-body .side { flex:1 1 300px; min-width:280px; }
+  table.cls { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.cls th { text-align:left; color:var(--ink3); font-weight:600; font-size:11px; padding:4px 8px; border-bottom:1px solid var(--line); }
+  table.cls td { padding:6px 8px; border-bottom:1px solid var(--line); }
+  .state { font-weight:650; font-size:11px; padding:1px 7px; border-radius:5px; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; padding:10px 14px; border-top:1px solid var(--line); font-size:11px; color:var(--ink3); align-items:center; }
+  .legend .sw { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:-1px; margin-right:5px; }
+  .note { font-size:11px; color:var(--ink3); margin-top:8px; max-width:1080px; margin-left:auto; margin-right:auto; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <div><h1>OI Positioning Cycle</h1><div class="sub">Product Requirements Document + Live Simulation · Nubra web terminal · F&amp;O</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-view="prd">PRD</button>
+    <button class="tab" data-view="sim">Live Cycle</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ PRD ============ -->
+  <section class="view active" id="view-prd">
+    <div class="doc">
+      <div class="doc-title">OI Positioning Cycle</div>
+
+      <h2 class="sec"><span class="n">1</span>Summary</h2>
+      <p>A rotation graph for F&amp;O traders. It uses the same visual as a Relative Rotation Graph (a scatter with four quadrants and trailing tails), but the axes are the two things F&amp;O positioning turns on: <b>price change (X)</b> and <b>open-interest change (Y)</b>. Each instrument is plotted by how its price and OI moved over the period, and its tail shows how it has rotated through the positioning regimes over the last few periods.</p>
+      <p>The four quadrants are the standard F&amp;O read: <b>Long Buildup</b> (price up, OI up), <b>Short Buildup</b> (price down, OI up), <b>Long Unwinding</b> (price down, OI down), <b>Short Covering</b> (price up, OI down). Scoped to <b>options / F&amp;O only</b> (OI is a derivatives concept; cash equities have none).</p>
+
+      <h2 class="sec"><span class="n">2</span>Scope &amp; expectations</h2>
+      <div>
+        <span class="pill in">Rotation graph (price change x OI change)</span>
+        <span class="pill in">Four OI quadrants</span>
+        <span class="pill in">Trajectory tails</span>
+        <span class="pill in">Classification table</span>
+        <span class="pill in">Interval + tail length</span>
+        <span class="pill in">F&amp;O instrument universe</span>
+      </div>
+      <div style="margin-top:6px">
+        <span class="pill out">Cash equities (no OI)</span>
+        <span class="pill out">IV / Greeks cycle (data-blocked)</span>
+        <span class="pill out">Investor RRG (separate feature)</span>
+        <span class="pill out">Mobile</span>
+      </div>
+      <h3>What it tells a trader</h3>
+      <ul>
+        <li><b>Long Buildup</b>: fresh longs, bullish conviction building.</li>
+        <li><b>Short Buildup</b>: fresh shorts, bearish conviction building.</li>
+        <li><b>Long Unwinding</b>: longs exiting, bullish conviction fading.</li>
+        <li><b>Short Covering</b>: shorts exiting, often a squeeze / bounce.</li>
+        <li>The <b>tail</b> is the edge: watching an instrument rotate (e.g. Short Buildup then into Short Covering) flags a shift before the label does.</li>
+      </ul>
+
+      <h2 class="sec"><span class="n">3</span>What the simulation demonstrates</h2>
+      <p>The <b>Live Cycle</b> tab is a working proof-of-concept: several F&amp;O names plotted by (price change, OI change), each with a rolling tail, classified into the four quadrants live, with the side table naming each instrument's current state. It runs the real classification and tail logic; only the raw price/OI moves are synthetic.</p>
+      <button class="btn-jump" data-jump="sim">Open the Live Cycle</button>
+
+      <h2 class="sec"><span class="n">4</span>Frontend requirements</h2>
+      <table class="req">
+        <tr><th>Area</th><th>Requirement</th></tr>
+        <tr><td>Rotation graph</td><td>Scatter with origin at (0,0); X = price % change, Y = OI % change; four quadrant backgrounds and labels; auto-scaling axes.</td></tr>
+        <tr><td>Tails</td><td>Per instrument, join the last N periods into a trajectory ending at the current point; tail length configurable (default 5).</td></tr>
+        <tr><td>Classification</td><td>Quadrant = sign of (price change, OI change). Side table lists each instrument's state, price change, and OI change.</td></tr>
+        <tr><td>Controls</td><td>Interval (daily / weekly), tail length, instrument universe (an F&amp;O watchlist / index constituents).</td></tr>
+        <tr><td>Consumes</td><td>Per instrument per period: price % change and OI % change (Section 5).</td></tr>
+      </table>
+
+      <h2 class="sec"><span class="n">5</span>Data contract (what the frontend consumes)</h2>
+      <p>Descriptive, not an ask. Per instrument, per period, two numbers: price change and OI change. Both from data Nubra already has.</p>
+      <table class="req">
+        <tr><th>Item</th><th>Detail</th></tr>
+        <tr><td>Price change</td><td><span class="mono">close</span> series at the chosen interval from <span class="mono">/charts/timeseries</span> (confirmed: 1 year of daily closes returns cleanly).</td></tr>
+        <tr><td>OI change</td><td>OI at the F&amp;O level. Live OI change is confirmed (the OI build-up screener returns real call/put/combined OI change for NIFTY, BANKNIFTY, RELIANCE). For the tails, the OI series at the interval (<span class="mono">cumulative_oi</span> / <span class="mono">cumulative_fut_oi</span>) is the one piece under verification (Section 6).</td></tr>
+        <tr><td>Classification</td><td>Client-side: quadrant from the signs; magnitudes give the plot position. No proprietary normalization (unlike a relative-strength RRG).</td></tr>
+        <tr><td>Coverage</td><td>F&amp;O instruments only (futures OI per underlying, or aggregate F&amp;O OI). Cash equities excluded (no OI).</td></tr>
+      </table>
+
+      <h2 class="sec"><span class="n">6</span>Findings: data availability</h2>
+      <table class="req">
+        <tr><th>Data</th><th>Status</th><th>Detail</th></tr>
+        <tr><td>Live OI change</td><td><span class="lab ok">Confirmed</span></td><td>The OI build-up screener returned real, live call/put/combined OI change and bias for NIFTY, BANKNIFTY, RELIANCE.</td></tr>
+        <tr><td>Price history (close)</td><td><span class="lab ok">Confirmed</span></td><td>247 daily closes over a full year for NIFTY and RELIANCE from <span class="mono">/charts/timeseries</span>.</td></tr>
+        <tr><td>OI history for tails</td><td><span class="lab partial">Verifying</span></td><td>Whether <span class="mono">cumulative_oi</span> / <span class="mono">cumulative_fut_oi</span> return a daily/weekly series (for the trajectory). Live OI is confirmed; this checks the history depth. A short test settles it.</td></tr>
+        <tr><td>IV / Greeks cycle</td><td><span class="lab gap">Blocked</span></td><td>Underlyings carry no IV/Greeks; per-option IV is only ~4 weeks (option lifetime) with no per-underlying series. An IV cycle would need a new feed. Out of scope here.</td></tr>
+      </table>
+
+      <h2 class="sec"><span class="n">7</span>The ask to backend</h2>
+      <div class="callout">
+        <h3>Request (small)</h3>
+        <p style="margin-bottom:6px">This feature is almost entirely client-side on data that exists. One verification:</p>
+        <ul style="margin-top:0">
+          <li><b>OI history series.</b> Confirm <span class="mono">cumulative_oi</span> / <span class="mono">cumulative_fut_oi</span> return a daily/weekly series per F&amp;O instrument (needed for the tails). Live OI change is already available; if the history returns, there is <b>no backend build</b> for this feature.</li>
+          <li><b>Confirm the OI level used.</b> Which OI to represent an underlying: aggregate F&amp;O OI, futures-only OI, or ATM-band option OI. Affects how a name is classified.</li>
+        </ul>
+      </div>
+
+      <h2 class="sec"><span class="n">8</span>Open questions</h2>
+      <ul>
+        <li>Does OI history come back at daily and weekly for the tails, and how far back?</li>
+        <li>Per-underlying OI definition (futures vs aggregate vs option-band)?</li>
+        <li>Expiry handling: OI resets/rolls at expiry, which can distort period-over-period OI change. Roll-adjust, or note it?</li>
+        <li>Universe: fixed F&amp;O list, index constituents, or the user's watchlist?</li>
+      </ul>
+
+      <h2 class="sec"><span class="n">9</span>Risks &amp; limitations</h2>
+      <ul>
+        <li>OI is F&amp;O positioning intent, not a price prediction; the quadrants describe what positioning is doing, not a signal to act on blindly.</li>
+        <li>Expiry rollover distorts OI change (OI migrates to the next series); needs roll-adjustment or a clear caveat.</li>
+        <li>Thin F&amp;O names have noisy OI; classification can flip on small moves.</li>
+        <li>Dense graph is desktop-first; mobile needs a rethink.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ SIMULATION ============ -->
+  <section class="view" id="view-sim">
+    <div class="sim-wrap">
+      <div class="sim-controls">
+        <div class="ctl"><label>Interval</label><select id="interval"><option>Daily</option><option selected>Weekly</option></select></div>
+        <div class="ctl"><label>Tail</label><select id="tail"><option>3</option><option selected>5</option><option>8</option></select></div>
+        <button class="btn" id="pause">Pause</button>
+        <button class="btn" id="reset">Reset</button>
+        <span class="badge-live"><span class="pulse"></span>LIVE · synthetic OI</span>
+      </div>
+      <div class="sim-shell">
+        <div class="sim-head">
+          <div><span class="inst">Positioning Cycle</span> <span class="muted">Price change x OI change · F&amp;O</span></div>
+          <span class="badge-live"><span class="pulse"></span>LIVE</span>
+        </div>
+        <div class="sim-body">
+          <div class="chart"><div id="cycleChart"></div></div>
+          <div class="side">
+            <table class="cls"><thead><tr><th>Symbol</th><th>State</th><th>Price</th><th>OI</th></tr></thead><tbody id="clsBody"></tbody></table>
+          </div>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--buy-bg)"></span>Long Buildup</span>
+          <span><span class="sw" style="background:var(--sell-bg)"></span>Short Buildup</span>
+          <span><span class="sw" style="background:var(--amber-bg)"></span>Long Unwinding</span>
+          <span><span class="sw" style="background:var(--accent-bg)"></span>Short Covering</span>
+          <span>Tail = last N periods; the dot is the current period.</span>
+        </div>
+      </div>
+      <div class="note">Each instrument is plotted by its price change (x) and OI change (y) for the period, with a rolling tail of the last N periods. Quadrant = the signs of the two changes. Runs the real classification and tail logic on synthetic price/OI moves; only the raw moves are fabricated.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let SEED = 90210;
+function rng(){ SEED|=0; SEED=(SEED+0x6D2B79F5)|0; let t=Math.imul(SEED^(SEED>>>15),1|SEED); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }
+function gauss(){ let u=0,v=0; while(!u)u=rng(); while(!v)v=rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+// F&O names, each biased toward a different quadrant so the board spreads out
+const NAMES = [
+  { sym:"NIFTY",     bx: 1.4, by: 1.1 },
+  { sym:"BANKNIFTY", bx: 1.2, by:-1.3 },
+  { sym:"RELIANCE",  bx:-1.4, by:-0.9 },
+  { sym:"HDFCBANK",  bx:-1.1, by: 1.2 },
+  { sym:"INFY",      bx: 0.4, by: 0.5 },
+];
+let tails = {}, tailLen = 5, running = true, timer = null;
+
+function quadrant(px, oi) {
+  if (px >= 0 && oi >= 0) return { name:"Long Buildup",  col:"var(--buy)",    ink:"var(--buy-ink)",  bg:"var(--buy-bg)" };
+  if (px <  0 && oi >= 0) return { name:"Short Buildup", col:"var(--sell)",   ink:"var(--sell-ink)", bg:"var(--sell-bg)" };
+  if (px <  0 && oi <  0) return { name:"Long Unwinding",col:"var(--amber)",  ink:"#8a5a00",         bg:"var(--amber-bg)" };
+  return                         { name:"Short Covering",col:"var(--accent)", ink:"var(--accent)",   bg:"var(--accent-bg)" };
+}
+
+function step() {
+  NAMES.forEach(n => {
+    const t = tails[n.sym], last = t[t.length - 1];
+    const px = last.px + gauss() * 0.55 + (n.bx - last.px) * 0.12;
+    const oi = last.oi + gauss() * 0.50 + (n.by - last.oi) * 0.12;
+    t.push({ px, oi });
+    while (t.length > tailLen) t.shift();
+  });
+}
+
+function render() {
+  const W = 600, H = 470, m = 42, cx = W / 2, cy = H / 2;
+  let R = 0.5;
+  Object.values(tails).forEach(t => t.forEach(p => { R = Math.max(R, Math.abs(p.px), Math.abs(p.oi)); }));
+  R = R * 1.15;
+  const mapX = px => cx + (px / R) * (W / 2 - m);
+  const mapY = oi => cy - (oi / R) * (H / 2 - m);
+  const q = { LB:"var(--buy-bg)", SB:"var(--sell-bg)", LU:"var(--amber-bg)", SC:"var(--accent-bg)" };
+  let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">`;
+  // quadrant backgrounds
+  s += `<rect x="${cx}" y="${m}" width="${W/2-m}" height="${cy-m}" fill="${q.LB}"/>`;
+  s += `<rect x="${m}" y="${m}" width="${cx-m}" height="${cy-m}" fill="${q.SB}"/>`;
+  s += `<rect x="${m}" y="${cy}" width="${cx-m}" height="${H-m-cy}" fill="${q.LU}"/>`;
+  s += `<rect x="${cx}" y="${cy}" width="${W/2-m}" height="${H-m-cy}" fill="${q.SC}"/>`;
+  // axes
+  s += `<line x1="${cx}" y1="${m}" x2="${cx}" y2="${H-m}" stroke="var(--line2)" stroke-width="1"/>`;
+  s += `<line x1="${m}" y1="${cy}" x2="${W-m}" y2="${cy}" stroke="var(--line2)" stroke-width="1"/>`;
+  // quadrant labels
+  s += `<text x="${W-m-6}" y="${m+16}" font-size="12" font-weight="700" text-anchor="end" fill="var(--buy-ink)">Long Buildup</text>`;
+  s += `<text x="${m+6}" y="${m+16}" font-size="12" font-weight="700" fill="var(--sell-ink)">Short Buildup</text>`;
+  s += `<text x="${m+6}" y="${H-m-8}" font-size="12" font-weight="700" fill="#8a5a00">Long Unwinding</text>`;
+  s += `<text x="${W-m-6}" y="${H-m-8}" font-size="12" font-weight="700" text-anchor="end" fill="var(--accent)">Short Covering</text>`;
+  // axis titles
+  s += `<text x="${W-m}" y="${cy-6}" font-size="10" text-anchor="end" fill="var(--ink3)">Price change +</text>`;
+  s += `<text x="${cx+6}" y="${m+2}" font-size="10" fill="var(--ink3)">OI change +</text>`;
+  // instruments: tail + dot + label
+  NAMES.forEach(n => {
+    const t = tails[n.sym], cur = t[t.length - 1], qd = quadrant(cur.px, cur.oi);
+    const path = t.map((p, i) => `${i ? "L" : "M"} ${mapX(p.px).toFixed(1)} ${mapY(p.oi).toFixed(1)}`).join(" ");
+    s += `<path d="${path}" fill="none" stroke="${qd.col}" stroke-width="2" opacity="0.55"/>`;
+    t.forEach((p, i) => { if (i < t.length - 1) s += `<circle cx="${mapX(p.px).toFixed(1)}" cy="${mapY(p.oi).toFixed(1)}" r="2.5" fill="${qd.col}" opacity="0.4"/>`; });
+    s += `<circle cx="${mapX(cur.px).toFixed(1)}" cy="${mapY(cur.oi).toFixed(1)}" r="6" fill="${qd.col}"/>`;
+    s += `<text x="${(mapX(cur.px)+9).toFixed(1)}" y="${(mapY(cur.oi)+4).toFixed(1)}" font-size="11" font-weight="650" fill="${qd.ink}">${n.sym}</text>`;
+  });
+  s += `</svg>`;
+  $("cycleChart").innerHTML = s;
+  // classification table
+  let rows = "";
+  NAMES.forEach(n => {
+    const cur = tails[n.sym][tails[n.sym].length - 1], qd = quadrant(cur.px, cur.oi);
+    rows += `<tr><td><b>${n.sym}</b></td>` +
+      `<td><span class="state" style="color:${qd.ink};background:${qd.bg}">${qd.name}</span></td>` +
+      `<td class="mono" style="color:${cur.px>=0?'var(--buy)':'var(--sell)'}">${cur.px>=0?"+":""}${cur.px.toFixed(2)}%</td>` +
+      `<td class="mono" style="color:${cur.oi>=0?'var(--buy)':'var(--sell)'}">${cur.oi>=0?"+":""}${cur.oi.toFixed(2)}%</td></tr>`;
+  });
+  $("clsBody").innerHTML = rows;
+}
+
+function reset() {
+  tails = {};
+  NAMES.forEach(n => { tails[n.sym] = []; let px = n.bx * 0.6, oi = n.by * 0.6; for (let i = 0; i < tailLen; i++) { px += gauss() * 0.4 + (n.bx - px) * 0.15; oi += gauss() * 0.4 + (n.by - oi) * 0.15; tails[n.sym].push({ px, oi }); } });
+  render();
+}
+function tick() { if (!running) return; step(); render(); }
+
+$("tail").addEventListener("change", e => { tailLen = +e.target.value; reset(); });
+$("interval").addEventListener("change", reset);
+$("pause").addEventListener("click", e => { running = !running; e.target.textContent = running ? "Pause" : "Play"; });
+$("reset").addEventListener("click", reset);
+function activateView(v){ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===v)); document.querySelectorAll(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v)); }
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>activateView(t.dataset.view)));
+document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>{ window.scrollTo(0,0); activateView(b.dataset.jump); }));
+
+reset();
+timer = setInterval(tick, 1600);
+</script>
+</body>
+</html>
