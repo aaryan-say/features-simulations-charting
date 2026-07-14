@@ -233,21 +233,33 @@
         <span class="pill out">Mobile</span>
       </div>
 
-      <h3>Sub-features unlocked by the same data</h3>
-      <p>The same per-candle, per-level classified volume powers three adjacent features at very different cost. Documenting them here so the one data investment is understood to unlock more than the footprint alone.</p>
+      <h3>The four order-flow features: scope closure</h3>
+      <p>The original order-flow concept set had four features. This is where each one lands and what, if anything, we are asking backend for. All four trace to one data primitive (Section 5), so a single backend investment closes the entire set.</p>
       <table class="req">
-        <tr><th>Sub-feature</th><th>Cost on top of the footprint</th></tr>
+        <tr><th>Feature</th><th>v1</th><th>Data needed</th><th>Disposition &amp; ask</th></tr>
         <tr>
-          <td><b>Candle Delta Strip</b><br><span class="lab ok">In v1</span></td>
-          <td>Free. Per-candle delta is just the sum of <span class="mono">ask_qty − bid_qty</span> across a candle's levels, already computed for the footprint footer. Surfaced as a header toggle (<b>on by default</b>) that shows a per-candle delta bar. No additional backend data.</td>
+          <td><b>1. Footprint Cluster Grid</b></td>
+          <td><span class="lab ok">In v1</span></td>
+          <td>Per-candle, per-level buy/sell-classified traded volume (new)</td>
+          <td>The core ask. Build the data (Section 5 / Section 7). Frontend is proven end-to-end in the simulation.</td>
         </tr>
         <tr>
-          <td><b>Cumulative Delta (CVD)</b><br><span class="lab partial">Light</span></td>
-          <td>A running sum of per-candle delta. For <b>F&amp;O</b> this is largely served by the existing <span class="mono">cumulative_volume_delta</span> field (pending confirmation it is populated and truly cumulative on a live F&amp;O instrument). For <b>cash equities</b> it still needs the new per-level data, since that field is F&amp;O-only.</td>
+          <td><b>2. Candle Delta Strip</b></td>
+          <td><span class="lab ok">In v1</span></td>
+          <td>None beyond feature 1 (sum of <span class="mono">ask − bid</span> per candle)</td>
+          <td>Frontend-only, no backend ask. Header toggle, on by default. Already working in the simulation.</td>
         </tr>
         <tr>
-          <td><b>Large Trade Bubbles</b><br><span class="lab gap">Needs raw tape</span></td>
-          <td>Plots individual large <i>trades</i> (single block prints) by exact price, time, and side. Requires per-trade data, so it works only if backend delivers the <b>raw tick-by-tick tape (Option A in §7)</b>, not the aggregated buckets (Option B). Note: this is <b>distinct from Point of Control</b>. POC marks the highest-volume price level (which can be many small trades); it does not detect a single large block.</td>
+          <td><b>3. Cumulative Delta (CVD)</b></td>
+          <td><span class="lab partial">Optional</span></td>
+          <td>Running sum of per-candle delta</td>
+          <td>No new ask for <b>F&amp;O</b> if the existing <span class="mono">cumulative_volume_delta</span> field checks out (verification in progress). <b>Cash</b> is covered by feature 1's data anyway. No separate backend build.</td>
+        </tr>
+        <tr>
+          <td><b>4. Large Trade Bubbles</b></td>
+          <td><span class="lab gap">Deferred (v2)</span></td>
+          <td>Raw tick-by-tick trade tape, per individual trade</td>
+          <td>Feasible only if backend delivers the <b>raw tape (Option A, Section 7)</b>, not aggregated buckets. <b>Distinct from Point of Control</b> (POC = busiest level, often many small trades; not a single block). Out of v1.</td>
         </tr>
       </table>
 
@@ -321,6 +333,7 @@
           <span class="step good">Footprint</span>
         </div>
         <p style="margin-bottom:0">Either option extends existing infrastructure (the F&amp;O delta pipeline and the l1 quote capture) rather than a greenfield build.</p>
+        <p style="margin-bottom:0"><b>What this one ask closes:</b> it directly powers the Footprint (1) and Candle Delta Strip (2), covers CVD (3) for cash equities, and, if delivered as the raw tape (Option A), also enables Large Trade Bubbles (4). One data investment, the whole order-flow set.</p>
       </div>
 
       <h2 class="sec"><span class="n">8</span>Open questions &amp; dependencies</h2>
