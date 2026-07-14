@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DOM / Market Depth: PRD + Simulation</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --panel2: #f1f3f5; --line: #e3e6ea; --line2: #d3d8de;
+    --ink: #1c2430; --ink2: #515c6b; --ink3: #8a94a2;
+    --buy: #0f9d58; --buy-bg: rgba(15,157,88,0.10); --buy-ink: #0a6b3b;
+    --sell: #d13438; --sell-bg: rgba(209,52,56,0.09); --sell-ink: #a01418;
+    --poc: #b8770a; --accent: #2563eb; --amber: #b8770a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.55; }
+  .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-family: "SF Mono", "Cascadia Mono", Consolas, monospace; }
+
+  header { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 10px 22px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .brand h1 { font-size: 15px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+  .brand .sub { font-size: 11px; color: var(--ink3); }
+  .tabs { display: flex; gap: 4px; margin-left: auto; }
+  .tab { background: transparent; border: 1px solid transparent; color: var(--ink2); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 550; }
+  .tab:hover { color: var(--ink); background: var(--panel2); }
+  .tab.active { color: var(--accent); background: #eaf1fe; border-color: #c9ddfb; }
+  .badge-live { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--buy); border: 1px solid rgba(15,157,88,.3); background: var(--buy-bg); padding: 3px 8px; border-radius: 999px; }
+  .badge-live .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--buy); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  main { padding: 22px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* PRD */
+  .doc { max-width: 940px; margin: 0 auto; }
+  .doc-title { font-size: 24px; font-weight: 700; margin: 4px 0 8px; letter-spacing: -.2px; }
+  .doc h2.sec { font-size: 15px; margin: 30px 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 9px; }
+  .doc h2.sec .n { color: var(--accent); font-weight: 700; font-size: 13px; }
+  .doc h3 { font-size: 13px; margin: 16px 0 6px; }
+  .doc p { margin: 8px 0; color: var(--ink2); }
+  .doc ul { margin: 6px 0; padding-left: 20px; color: var(--ink2); }
+  .doc li { margin: 4px 0; }
+  .doc b, .doc strong { color: var(--ink); }
+  .doc .mono { background: var(--panel2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 12px; }
+  table.req { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; background: var(--panel); }
+  table.req th, table.req td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  table.req th { background: var(--panel2); font-weight: 600; color: var(--ink); font-size: 12px; }
+  table.req td { color: var(--ink2); }
+  table.req td:first-child { font-weight: 600; color: var(--ink); }
+  .lab { display: inline-block; font-size: 11px; font-weight: 650; padding: 1px 7px; border-radius: 5px; white-space: nowrap; }
+  .lab.ok { color: var(--buy-ink); background: var(--buy-bg); border: 1px solid rgba(15,157,88,.3); }
+  .lab.gap { color: var(--sell-ink); background: var(--sell-bg); border: 1px solid rgba(209,52,56,.3); }
+  .lab.partial { color: #8a5a00; background: rgba(184,119,10,.12); border: 1px solid rgba(184,119,10,.3); }
+  .pill { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line2); color: var(--ink2); margin: 2px 5px 2px 0; background: var(--panel); }
+  .pill.in { border-color: rgba(15,157,88,.35); color: var(--buy-ink); background: var(--buy-bg); }
+  .pill.out { border-color: rgba(209,52,56,.3); color: var(--sell-ink); background: var(--sell-bg); }
+  .callout { border: 1px solid var(--line2); border-left: 3px solid var(--accent); background: #f8faff; border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+  .callout h3 { margin-top: 0; }
+  .btn-jump { display: inline-block; margin-top: 6px; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .xref { display: inline-block; margin-top: 8px; font-size: 12px; }
+
+  /* Simulations */
+  .sim-wrap { max-width: 900px; margin: 0 auto; }
+  .sim-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .ctl { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+  .ctl label { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: .4px; }
+  select, .btn { background: var(--panel); color: var(--ink); border: 1px solid var(--line2); border-radius: 6px; padding: 5px 8px; font-size: 13px; font-family: inherit; cursor: pointer; }
+  select:focus { outline: 1px solid var(--accent); }
+  .btn:hover { border-color: var(--accent); }
+  .sim-shell { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+  .sim-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .sim-head .inst { font-weight: 650; font-size: 15px; }
+  .sim-head .muted { color: var(--ink3); font-size: 11px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink3); align-items: center; }
+  .legend .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; border: 1px solid var(--line2); }
+  .note { font-size: 11px; color: var(--ink3); margin-top: 8px; max-width: 900px; margin-left: auto; margin-right: auto; }
+  a { color: var(--accent); }
+
+  /* Gauge */
+  .gauge-body { padding: 26px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .gauge-val { font-size: 34px; font-weight: 700; }
+  .gauge-lbl { font-size: 13px; color: var(--ink2); font-weight: 600; }
+  .gauge-extreme { font-size: 12px; font-weight: 600; color: var(--poc); min-height: 16px; }
+  .depth-mini { display: flex; gap: 24px; margin-top: 8px; font-size: 12px; }
+  .depth-mini .c { text-align: center; }
+  .depth-mini .c .n { font-weight: 700; font-size: 16px; }
+  .depth-mini .bidc { color: var(--sell); }
+  .depth-mini .askc { color: var(--buy); }
+
+  /* Heatmap */
+  .heat-body { padding: 16px; overflow-x: auto; }
+  table.heat { border-collapse: separate; border-spacing: 4px; margin: 0 auto; }
+  table.heat th { font-size: 11px; color: var(--ink3); font-weight: 600; padding: 2px 6px; }
+  table.heat td.px { font-size: 12px; color: var(--ink2); text-align: right; padding-right: 8px; }
+  table.heat td.cell { width: 84px; height: 40px; text-align: center; border-radius: 6px; font-size: 12px; font-weight: 600; color: #0b2a52; transition: background-color .5s; }
+  table.heat td.cell.max { box-shadow: inset 0 0 0 2px var(--poc); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <h1>DOM / Market Depth</h1>
+      <div class="sub">Product Requirements Document + Live Simulation · Nubra web terminal</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-view="prd">PRD</button>
+    <button class="tab" data-view="meter">Imbalance Meter</button>
+    <button class="tab" data-view="heat">Liquidity Heatmap</button>
+  </div>
+</header>
+
+<main>
+  <!-- ================= PRD ================= -->
+  <section class="view active" id="view-prd">
+    <div class="doc">
+      <div class="doc-title">DOM / Market Depth</div>
+
+      <h2 class="sec"><span class="n">1</span>Summary</h2>
+      <p>Two features built on the order book (resting bid/ask liquidity, "market depth"): the <b>DOM Imbalance Meter</b> (total bid vs total ask liquidity as a single gauge) and the <b>DOM Heatmap</b> (how much liquidity sits at each price level across recent snapshots, Bookmap-style).</p>
+      <p>Unlike the order-flow / footprint cluster, which needs the executed-trade tape Nubra does not yet expose, these read the <b>order book</b>, which Nubra already streams up to <b>20 levels</b> live. The headline finding: <b>this cluster is largely buildable on existing APIs today.</b> The only new dependency is optional (historical L2 depth, and only for heatmap replay).</p>
+
+      <h2 class="sec"><span class="n">2</span>Feature scope &amp; expectations</h2>
+      <div>
+        <span class="pill in">DOM Imbalance Meter</span>
+        <span class="pill in">DOM Heatmap (live rolling)</span>
+        <span class="pill in">Configurable depth (1 to 20 levels)</span>
+        <span class="pill in">Extreme-imbalance flag</span>
+        <span class="pill in">Instrument switch</span>
+      </div>
+      <div style="margin-top:6px">
+        <span class="pill out">Historical depth replay</span>
+        <span class="pill out">Depth-based alerts</span>
+        <span class="pill out">Mobile</span>
+      </div>
+
+      <h3>The two DOM features: scope closure</h3>
+      <table class="req">
+        <tr><th>Feature</th><th>v1</th><th>Data needed</th><th>Disposition &amp; ask</th></tr>
+        <tr>
+          <td><b>1. DOM Imbalance Meter</b></td>
+          <td><span class="lab ok">In v1</span></td>
+          <td>Order-book depth (bid/ask quantity per level), up to 20 levels</td>
+          <td>Available today. Sum bid vs ask quantity from the existing depth feed and render the ratio. No backend ask. Advanced: weight by distance from LTP (each level carries its price).</td>
+        </tr>
+        <tr>
+          <td><b>2. DOM Heatmap (live)</b></td>
+          <td><span class="lab ok">In v1</span></td>
+          <td>The same depth feed, streamed; recent snapshots accumulated client-side</td>
+          <td>Available today for the live, going-forward heatmap. Stream the <span class="mono">orderbook</span> channel and keep a rolling buffer of the last N snapshots. No backend ask.</td>
+        </tr>
+        <tr>
+          <td><b>2b. DOM Heatmap (history / replay)</b></td>
+          <td><span class="lab partial">Optional</span></td>
+          <td>Historical L2 depth snapshots over time</td>
+          <td>The only new dependency in this cluster. No endpoint exposes past depth, so backfill / replay ("what did the book look like an hour ago") needs a new historical L2 feed. Not required for the live heatmap.</td>
+        </tr>
+      </table>
+
+      <h2 class="sec"><span class="n">3</span>What the simulations demonstrate</h2>
+      <p>Both tabs are working proofs-of-concept running the real logic on a synthetic order book. The <b>Imbalance Meter</b> sums bid vs ask quantity across the live depth and renders the true ratio; the <b>Liquidity Heatmap</b> keeps a rolling buffer of the last five depth snapshots and colours each price level by liquidity, exactly as a production build would from the <span class="mono">orderbook</span> stream. Only the raw depth numbers are synthetic.</p>
+      <button class="btn-jump" data-jump="meter">Open the Imbalance Meter</button>
+      <button class="btn-jump" data-jump="heat" style="margin-left:8px">Open the Liquidity Heatmap</button>
+
+      <h2 class="sec"><span class="n">4</span>Frontend requirements</h2>
+      <table class="req">
+        <tr><th>Area</th><th>Requirement</th></tr>
+        <tr><td>Imbalance gauge</td><td>Sum bid vs ask quantity across N levels, render bid-pressure ratio on a gauge; flag extreme one-sided pressure (thresholds tunable per instrument).</td></tr>
+        <tr><td>Heatmap grid</td><td>Rows = price levels, columns = recent snapshots (T-4 to T0); cell colour by liquidity intensity; highlight the thickest level per snapshot. Roll columns left as new snapshots arrive.</td></tr>
+        <tr><td>Live data</td><td>Subscribe to the <span class="mono">orderbook</span> websocket channel; accumulate a client-side rolling buffer for the heatmap. Depth level count configurable (1 to 20).</td></tr>
+        <tr><td>States</td><td>Index spot has no order book of its own: show a clear disabled empty-state (use an index future/option instead).</td></tr>
+      </table>
+
+      <h2 class="sec"><span class="n">5</span>Backend requirements (data contract)</h2>
+      <table class="req">
+        <tr><th>Item</th><th>Requirement</th><th>Status</th></tr>
+        <tr><td>Depth snapshot (REST)</td><td><span class="mono">GET /orderbooks/{ref_id}?levels={levels}</span> returns <span class="mono">bid[]</span>/<span class="mono">ask[]</span> with price, quantity, num_orders, plus ltp/ltq/volume.</td><td><span class="lab ok">Available</span></td></tr>
+        <tr><td>Depth stream (WebSocket)</td><td><span class="mono">orderbook</span> channel: up to 20 bid/ask levels per instrument, configurable via <span class="mono">orderbook_depth</span> (1 to 20). Payload <span class="mono">OrderBookLevel { price, quantity, orders }</span>.</td><td><span class="lab ok">Available</span></td></tr>
+        <tr><td>Historical L2 depth</td><td>Time series of past depth snapshots (for heatmap replay / backfill).</td><td><span class="lab gap">Missing</span></td></tr>
+      </table>
+
+      <h2 class="sec"><span class="n">6</span>Findings: current data availability</h2>
+      <p>From the v3 REST + WebSocket docs and live testing.</p>
+      <table class="req">
+        <tr><th>Data</th><th>Status</th><th>Detail</th></tr>
+        <tr>
+          <td>Order-book depth (REST + WS)</td>
+          <td><span class="lab ok">Available</span></td>
+          <td>REST <span class="mono">/orderbooks/{ref_id}?levels=</span> and the <span class="mono">orderbook</span> websocket both return per-level bid/ask quantity and order count. Docs state the stream sends <b>up to 20 levels</b>; live <span class="mono">get_quote</span> confirmed real 5-level depth for RELIANCE (price, quantity, order count per level).</td>
+        </tr>
+        <tr>
+          <td>Historical L2 depth</td>
+          <td><span class="lab gap">Missing</span></td>
+          <td>No endpoint returns past depth snapshots. The live heatmap is built by buffering the stream forward; there is no backfill or replay of the book.</td>
+        </tr>
+      </table>
+
+      <h2 class="sec"><span class="n">7</span>The ask to backend</h2>
+      <div class="callout">
+        <h3>Request (small)</h3>
+        <p style="margin-bottom:6px">Most of this cluster needs <b>no backend work</b>: the Imbalance Meter and the live Heatmap both run on the existing <span class="mono">orderbook</span> depth feed. Two items to close:</p>
+        <ul style="margin-top:0">
+          <li><b>Confirm 20-level depth in PROD.</b> We have verified 5 levels live; docs say up to 20. Confirm the full 20 levels stream in production for the instruments we care about.</li>
+          <li><b>Optional: a historical L2 depth feed</b>, only if we want heatmap replay / backfill. Not needed for the live heatmap.</li>
+        </ul>
+        <p style="margin-bottom:0"><b>Contrast:</b> the order-flow cluster (footprint, delta, CVD, bubbles) is blocked on the missing trade tape. This DOM cluster is not: it rides the order book, which already exists.</p>
+      </div>
+
+      <h2 class="sec"><span class="n">8</span>Open questions</h2>
+      <ul>
+        <li>Does the PROD <span class="mono">orderbook</span> stream deliver the full 20 levels for all instruments, or fewer for some?</li>
+        <li>Any per-instrument or tier entitlement gating on depth beyond 5 levels?</li>
+        <li>Is a historical L2 depth store feasible if we later want heatmap replay?</li>
+        <li>Websocket throughput on dense books (20 levels x many instruments) for the heatmap.</li>
+      </ul>
+
+      <h2 class="sec"><span class="n">9</span>Risks &amp; limitations</h2>
+      <ul>
+        <li>Raw bid/ask ratio is noisy on thin instruments; thresholds must be tuned per instrument to avoid false urgency.</li>
+        <li>The imbalance gauge says how one-sided the book is, not where that liquidity sits relative to price (distance-weighting is the advanced answer).</li>
+        <li>Resting depth can be spoofed / pulled; it is intent, not executed volume, so it should not be read as guaranteed liquidity.</li>
+        <li>The heatmap is render-heavy on mobile; desktop-first.</li>
+        <li>Live-only heatmap has no memory before subscription; replay needs the optional historical feed.</li>
+      </ul>
+      <a class="xref" href="../orderflow-prd/">See also: Order Flow / Footprint PRD</a>
+    </div>
+  </section>
+
+  <!-- ================= IMBALANCE METER ================= -->
+  <section class="view" id="view-meter">
+    <div class="sim-wrap">
+      <div class="sim-controls">
+        <div class="ctl"><label>Symbol</label><select id="mSym"></select></div>
+        <div class="ctl"><label>Levels</label>
+          <select id="mLevels"><option value="5">5</option><option value="10">10</option><option value="20" selected>20</option></select>
+        </div>
+        <button class="btn" id="mPause">Pause</button>
+        <span class="badge-live"><span class="pulse"></span>LIVE · synthetic depth</span>
+      </div>
+      <div class="sim-shell">
+        <div class="sim-head">
+          <div><span class="inst">Order Book Imbalance</span> <span class="muted" id="mMeta"></span></div>
+          <span class="badge-live"><span class="pulse"></span>LIVE</span>
+        </div>
+        <div class="gauge-body">
+          <svg viewBox="0 0 200 118" style="width:280px;max-width:100%">
+            <path d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="var(--line)" stroke-width="16" stroke-linecap="round"/>
+            <path id="mArc" d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" style="transition:stroke-dashoffset .6s ease, stroke .3s"/>
+          </svg>
+          <div><span class="gauge-val mono" id="mVal">50%</span></div>
+          <div class="gauge-lbl">Bid Pressure</div>
+          <div class="gauge-extreme" id="mExtreme"></div>
+          <div class="depth-mini">
+            <div class="c"><div class="n mono bidc" id="mBid">0</div><div>Total bid qty</div></div>
+            <div class="c"><div class="n mono askc" id="mAsk">0</div><div>Total ask qty</div></div>
+          </div>
+        </div>
+        <div class="legend">
+          <span>Bid pressure = total bid quantity / (total bid + total ask), summed across the selected levels.</span>
+          <span><span class="sw" style="background:var(--poc)"></span>Extreme one-sided pressure</span>
+        </div>
+      </div>
+      <div class="note">Runs the real imbalance calculation on a synthetic order book. In production this reads the existing <span class="mono" style="background:var(--panel2);padding:0 3px;border-radius:3px">orderbook</span> depth feed (up to 20 levels); only the raw quantities here are synthetic.</div>
+    </div>
+  </section>
+
+  <!-- ================= LIQUIDITY HEATMAP ================= -->
+  <section class="view" id="view-heat">
+    <div class="sim-wrap">
+      <div class="sim-controls">
+        <div class="ctl"><label>Symbol</label><select id="hSym"></select></div>
+        <button class="btn" id="hPause">Pause</button>
+        <span class="badge-live"><span class="pulse"></span>LIVE · synthetic depth</span>
+      </div>
+      <div class="sim-shell">
+        <div class="sim-head">
+          <div><span class="inst">Liquidity Heatmap</span> <span class="muted">Bookmap-style · recent snapshots</span></div>
+          <span class="badge-live"><span class="pulse"></span>LIVE</span>
+        </div>
+        <div class="heat-body"><table class="heat" id="heatTable"></table></div>
+        <div class="legend">
+          <span>Heat intensity = resting liquidity at that price level, across the last five snapshots (T-4 to T0).</span>
+          <span><span class="sw" style="box-shadow:inset 0 0 0 2px var(--poc);background:transparent"></span>Thickest level in the snapshot</span>
+        </div>
+      </div>
+      <div class="note">A new snapshot appends at T0 every ~1.5s and the columns roll left, exactly how a live build accumulates the <span class="mono" style="background:var(--panel2);padding:0 3px;border-radius:3px">orderbook</span> stream client-side. Historical replay before you opened it would need a new L2 depth-history feed.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ============================================================
+   DOM simulations: synthetic order book, real imbalance +
+   rolling-snapshot heatmap logic. Only raw depth is synthetic.
+   ============================================================ */
+let SEED = 20260714;
+function rng() { SEED |= 0; SEED = (SEED + 0x6D2B79F5) | 0; let t = Math.imul(SEED ^ (SEED >>> 15), 1 | SEED); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+const rand = (a, b) => a + rng() * (b - a);
+const $ = id => document.getElementById(id);
+
+const INSTRUMENTS = [
+  { sym: "NIFTY 14 JUL 24150 CALL", type: "OPT", base: 27.65, tick: 0.05, unit: 300, hasBook: true },
+  { sym: "BANKNIFTY 30 JUL FUT", type: "FUT", base: 58120, tick: 0.05, unit: 90, hasBook: true },
+  { sym: "RELIANCE", type: "STOCK", base: 1297, tick: 0.05, unit: 400, hasBook: true },
+  { sym: "NIFTY (Index Spot)", type: "INDEX", base: 24200, tick: 0.05, unit: 1, hasBook: false },
+];
+function compact(v) { const a = Math.abs(v); if (a >= 1e5) return (v/1e5).toFixed(2)+"L"; if (a >= 1e3) return (v/1e3).toFixed(1)+"K"; return Math.round(v).toString(); }
+
+// synthetic order book: bias drifts so pressure swings realistically
+function bookSnapshot(inst, levels, bias) {
+  const bids = [], asks = [];
+  for (let i = 0; i < levels; i++) {
+    const decay = 1 - i / (levels + 2);
+    bids.push(Math.round(inst.unit * decay * (0.5 + rng()) * (1 + bias)));
+    asks.push(Math.round(inst.unit * decay * (0.5 + rng()) * (1 - bias)));
+  }
+  return { bids, asks };
+}
+
+/* ---- Imbalance Meter ---- */
+let mInst = INSTRUMENTS[0], mLevels = 20, mRunning = true, mBias = 0, mTimer = null;
+function mFill() { const s = $("mSym"); s.innerHTML = ""; INSTRUMENTS.forEach((it, i) => { const o = document.createElement("option"); o.value = i; o.textContent = it.sym + (it.hasBook ? "" : "  (no book)"); s.appendChild(o); }); }
+function mTick() {
+  if (!mRunning) return;
+  mBias = Math.max(-0.4, Math.min(0.4, mBias + (rng() - 0.5) * 0.12));
+  if (!mInst.hasBook) {
+    $("mMeta").textContent = "Index has no order book";
+    $("mVal").textContent = "N/A"; $("mExtreme").textContent = "Order flow unavailable for indices";
+    $("mArc").setAttribute("stroke-dashoffset", "283"); $("mBid").textContent = "0"; $("mAsk").textContent = "0";
+    return;
+  }
+  const b = bookSnapshot(mInst, mLevels, mBias);
+  const bidT = b.bids.reduce((a, x) => a + x, 0), askT = b.asks.reduce((a, x) => a + x, 0);
+  const pct = Math.round(bidT / (bidT + askT) * 100);
+  const extreme = pct > 72 || pct < 28;
+  $("mArc").setAttribute("stroke-dashoffset", (283 - pct / 100 * 283).toFixed(1));
+  $("mArc").setAttribute("stroke", extreme ? "var(--poc)" : "var(--accent)");
+  $("mVal").textContent = pct + "%";
+  $("mExtreme").textContent = extreme ? "Extreme imbalance detected" : "";
+  $("mBid").textContent = compact(bidT); $("mAsk").textContent = compact(askT);
+  $("mMeta").textContent = mInst.type + " · NSE · " + mLevels + " levels";
+}
+$("mSym").addEventListener("change", e => { mInst = INSTRUMENTS[+e.target.value]; mTick(); });
+$("mLevels").addEventListener("change", e => { mLevels = +e.target.value; mTick(); });
+$("mPause").addEventListener("click", e => { mRunning = !mRunning; e.target.textContent = mRunning ? "Pause" : "Play"; });
+
+/* ---- Liquidity Heatmap ---- */
+let hInst = INSTRUMENTS[0], hRunning = true, hBias = 0, hTimer = null, hCols = [];
+const HEAT_ROWS = 7, HEAT_SNAPS = 5;
+function hFill() { const s = $("hSym"); s.innerHTML = ""; INSTRUMENTS.forEach((it, i) => { const o = document.createElement("option"); o.value = i; o.textContent = it.sym + (it.hasBook ? "" : "  (no book)"); s.appendChild(o); }); }
+function heatLevels(inst) { const step = inst.tick * Math.max(1, Math.round(inst.base / inst.tick / 400)); const mid = Math.round(inst.base / step) * step; const out = []; for (let i = 0; i < HEAT_ROWS; i++) out.push(+(mid + (Math.floor(HEAT_ROWS / 2) - i) * step).toFixed(2)); return out; }
+function heatSnapshot(inst) { return heatLevels(inst).map((_, i) => { const decay = 1 - Math.abs(i - HEAT_ROWS / 2) / (HEAT_ROWS); return Math.round(inst.unit * (0.6 + rng() * 1.2) * (0.4 + decay)); }); }
+function hReset() { hCols = []; for (let i = 0; i < HEAT_SNAPS; i++) hCols.push(heatSnapshot(hInst)); hRender(); }
+function hTick() { if (!hRunning || !hInst.hasBook) return; hCols.push(heatSnapshot(hInst)); if (hCols.length > HEAT_SNAPS) hCols.shift(); hRender(); }
+function hRender() {
+  const t = $("heatTable");
+  if (!hInst.hasBook) { t.innerHTML = "<tr><td style='padding:40px;color:var(--ink2);text-align:center' colspan='6'><b>Order flow unavailable for indices</b><br>An index spot has no order book. Try an index future or option.</td></tr>"; return; }
+  const levels = heatLevels(hInst), labels = ["T-4", "T-3", "T-2", "T-1", "T0"];
+  const max = Math.max(1, ...hCols.flat());
+  let html = "<tr><th></th>" + labels.map(l => "<th>" + l + "</th>").join("") + "</tr>";
+  levels.forEach((lv, ri) => {
+    html += "<tr><td class='px mono'>" + lv.toLocaleString("en-IN") + "</td>";
+    for (let ci = 0; ci < HEAT_SNAPS; ci++) {
+      const col = hCols[ci] || [], q = col[ri] || 0, intensity = q / max;
+      const isMax = col.length && q === Math.max(...col);
+      const bg = "rgba(37,99,235," + (0.08 + intensity * 0.62).toFixed(3) + ")";
+      html += "<td class='cell mono" + (isMax ? " max" : "") + "' style='background:" + bg + "'>" + compact(q) + "</td>";
+    }
+    html += "</tr>";
+  });
+  t.innerHTML = html;
+}
+$("hSym").addEventListener("change", e => { hInst = INSTRUMENTS[+e.target.value]; hReset(); });
+$("hPause").addEventListener("click", e => { hRunning = !hRunning; e.target.textContent = hRunning ? "Pause" : "Play"; });
+
+/* ---- tabs ---- */
+function activateView(v) {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x.dataset.view === v));
+  document.querySelectorAll(".view").forEach(x => x.classList.toggle("active", x.id === "view-" + v));
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateView(t.dataset.view)));
+document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => { window.scrollTo(0, 0); activateView(b.dataset.jump); }));
+
+/* ---- boot ---- */
+mFill(); hFill(); mTick(); hReset();
+mTimer = setInterval(mTick, 1200);
+hTimer = setInterval(hTick, 1500);
+</script>
+</body>
+</html>
