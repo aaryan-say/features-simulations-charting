@@ -202,7 +202,7 @@
 
       <h2 class="sec"><span class="n">1</span>Summary</h2>
       <p>A footprint (cluster) chart is a price-level order-flow grid. For every candle it shows, at each price, how much volume traded at the bid (sell-initiated) versus at the ask (buy-initiated). It answers a question standard OHLC candles cannot: <b>who was aggressive, and at which price, inside the bar.</b></p>
-      <p>This is a headline pro-trader feature on Dhan DEXT, GoCharting, NinjaTrader, and Bookmap, and a natural fit for Nubra's active F&amp;O / scalper audience. This document scopes v1, describes the working simulation that accompanies it, specifies what is required from frontend and backend, and presents our findings from live API testing and backend confirmation. The headline finding: <b>the data needed to build this does not exist yet and must be built.</b></p>
+      <p>This is a headline pro-trader feature on Dhan DEXT, GoCharting, NinjaTrader, and Bookmap, and a natural fit for Nubra's active F&amp;O / scalper audience. This document scopes v1, describes the working simulation that accompanies it, specifies what is required from frontend and backend, and presents our findings from live API testing, the v3 docs, and backend confirmation. The headline finding: <b>the raw fields needed appear to already exist</b> in the tick-level <span class="mono">orderbook</span> websocket (last traded price + quantity per tick, with synchronized depth in the same packet). The open item is confirming the stream's tick granularity, not building a feed from scratch.</p>
 
       <h2 class="sec"><span class="n">2</span>Feature scope &amp; expectations</h2>
       <p>A grid, not a chart: columns are candles along a time x-axis, rows are price levels on a shared y-axis, and each cell holds two numbers, bid volume (left) and ask volume (right), for that price in that candle. We deliberately exclude candlestick bodies, VWAP, volume profile, and a cumulative-delta pane; those make it a chart, and are out of scope for v1.</p>
@@ -239,8 +239,8 @@
         <tr>
           <td><b>1. Footprint Cluster Grid</b></td>
           <td><span class="lab ok">In v1</span></td>
-          <td>Per-candle, per-level buy/sell-classified traded volume (new)</td>
-          <td>The core ask. Build the data (Section 5 / Section 7). Frontend is proven end-to-end in the simulation.</td>
+          <td>Per-trade price + quantity from the tick-level <span class="mono">orderbook</span> stream, classified by aggressor</td>
+          <td>The raw fields likely already stream (ltp+ltq per tick + depth). Pending the tick-granularity check (Section 7); frontend is proven end-to-end in the simulation.</td>
         </tr>
         <tr>
           <td><b>2. Candle Delta Strip</b></td>
@@ -257,8 +257,8 @@
         <tr>
           <td><b>4. Large Trade Bubbles</b></td>
           <td><span class="lab partial">Conditional</span></td>
-          <td>Raw tick-by-tick trade tape, per individual trade</td>
-          <td>A footprint overlay toggle (<b>Bubbles</b>), like the Delta Strip, marking large single trades on the grid cell where they printed. Feasible only if backend delivers the <b>raw tape (Option A, Section 7)</b>, not aggregated buckets. <b>Distinct from Point of Control</b> (POC = busiest level, often many small trades; not a single block).</td>
+          <td>Per-<b>individual</b>-trade size (each print), from the tick-level stream</td>
+          <td>A footprint overlay toggle (<b>Bubbles</b>), like the Delta Strip, marking large single trades on the grid cell where they printed. Feasible if the tick-level <span class="mono">orderbook</span> stream is truly per-trade (Section 7); if it coalesces trades, this needs a per-trade event feed. <b>Distinct from Point of Control</b> (POC = busiest level, often many small trades; not a single block).</td>
         </tr>
       </table>
 
@@ -275,22 +275,22 @@
         <tr><td>Overlays &amp; toggles</td><td>Bid/ask imbalance highlight (threshold configurable, default 1.8×), per-candle Delta + total volume footer, Point of Control (highest-volume level). Header toggles: Candle Delta Strip (on by default) and Large Trade Bubbles (needs the raw tape).</td></tr>
         <tr><td>Interactions</td><td>Hover-cell tooltip (bid, ask, delta, total, price); in-widget timeframe and symbol switch; click-to-trade Buy/Sell; scroll both axes with time on x, price on y.</td></tr>
         <tr><td>States</td><td>Index instruments show a clear disabled empty-state (no order book of their own).</td></tr>
-        <tr><td>Consumes</td><td>The data contract in §6: per-candle, per-level <span class="mono">{bid_qty, ask_qty}</span> live stream + historical backfill.</td></tr>
+        <tr><td>Consumes</td><td>The tick-level <span class="mono">orderbook</span> stream (Section 5): per-trade <span class="mono">ltp</span>+<span class="mono">ltq</span> plus bid/ask depth per tick; classifies and buckets client-side.</td></tr>
       </table>
 
       <h2 class="sec"><span class="n">5</span>Backend requirements (data contract)</h2>
-      <p>The frontend needs one primitive it does not have today: <b>traded volume, classified as buy- or sell-initiated, bucketed by price level and candle.</b></p>
+      <p>The frontend needs one primitive: <b>each executed trade's price + quantity</b>, which it classifies and buckets itself. This likely already streams; the contract below is what we consume.</p>
       <table class="req">
         <tr><th>Item</th><th>Requirement</th></tr>
-        <tr><td>Shape</td><td>Per candle, per price level: <span class="mono">{ level: { bid_qty, ask_qty } }</span>. Bid = sell-initiated volume, ask = buy-initiated volume.</td></tr>
-        <tr><td>Classification</td><td>Quote rule (Lee &amp; Ready 1991): trade at/above ask = buy, at/below bid = sell, in-between = tick-rule fallback. Requires the tick-by-tick trade tape plus synchronized top-of-book, or delivery pre-classified.</td></tr>
+        <tr><td>Source</td><td>The tick-level <span class="mono">orderbook</span> websocket: per tick, <span class="mono">ltp</span> (last traded price), <span class="mono">ltq</span> (last traded quantity), <span class="mono">volume</span>, and the top bid/ask levels, in one packet.</td></tr>
+        <tr><td>Granularity (to confirm)</td><td>A message per executed trade, so <span class="mono">ltq</span> is each individual print's size (not coalesced across trades). This is the one open verification.</td></tr>
+        <tr><td>Classification</td><td>Done client-side via the quote rule (Lee &amp; Ready 1991): trade at/above ask = buy, at/below bid = sell, else tick-rule fallback. Uses the bid/ask in the same packet, so no separate quote feed needed.</td></tr>
         <tr><td>Coverage</td><td>All instruments with an order book: cash equity + F&amp;O. Indices excluded (no book).</td></tr>
-        <tr><td>Delivery</td><td>Live via the market websocket (current candle updates); historical backfill via REST for N recent candles.</td></tr>
-        <tr><td>Granularity</td><td>Bucketable to a configurable price step; timeframes 1m / 3m / 5m / 15m.</td></tr>
+        <tr><td>Aggregation</td><td>Client-side: bucket classified volume by price level (configurable step) and by candle (1m / 3m / 5m / 15m).</td></tr>
       </table>
 
       <h2 class="sec"><span class="n">6</span>Findings: current data availability</h2>
-      <p>Investigated via the v3 <span class="mono">/charts/timeseries</span> endpoint (authenticated PROD calls) and confirmed with the backend team.</p>
+      <p>Investigated via the v3 <span class="mono">/charts/timeseries</span> endpoint (authenticated PROD calls), the v3 REST + WebSocket docs, and backend confirmation.</p>
       <table class="req">
         <tr><th>Data</th><th>Status</th><th>Detail</th></tr>
         <tr>
@@ -304,40 +304,40 @@
           <td>Returned as real historical time series in the same test. Confirms top-of-book is already captured, which is one half of what quote-rule classification needs.</td>
         </tr>
         <tr>
-          <td>Per-level bid/ask traded volume<br>(the footprint primitive)</td>
-          <td><span class="lab gap">Missing</span></td>
-          <td>No endpoint exposes traded volume split by price level and aggressor side. This is the core input the footprint requires.</td>
+          <td><span class="mono">orderbook</span> websocket<br>(ltp, ltq, volume + 20-level depth)</td>
+          <td><span class="lab ok">Available</span></td>
+          <td>The realtime <span class="mono">orderbook</span> channel carries last traded price, <b>last traded quantity (ltq)</b>, volume, and up to 20 bid/ask levels per message. The docs state that with no interval set, <b>the default is tick-level streaming</b>. This is the raw ingredient a trade tape is built from, delivered with the synchronized quote in the same packet.</td>
         </tr>
         <tr>
-          <td>Tick-by-tick trade tape<br>(ts, price, qty per trade)</td>
-          <td><span class="lab gap">Missing</span></td>
-          <td>Not exposed via any API. It is the raw source from which per-level classified volume is derived.</td>
+          <td>Dedicated trade tape / footprint buckets<br>(pre-classified by aggressor)</td>
+          <td><span class="lab partial">Compute-side</span></td>
+          <td>No endpoint returns per-trade data pre-tagged buy/sell-initiated, or ready-made per-level footprint buckets. These are computed client-side from the tick-level <span class="mono">orderbook</span> stream: capture ltp+ltq per tick and classify against the same packet's bid/ask via the quote rule.</td>
         </tr>
       </table>
-      <p><b>Interpretation.</b> The one field that resembles order flow, <span class="mono">cumulative_volume_delta</span>, cannot power this feature for two independent reasons: it is a single aggregate number per candle rather than the per-price-level breakdown a footprint is made of, and it exists only for F&amp;O, not for the cash equities we also need to cover.</p>
+      <p><b>Interpretation.</b> The pre-computed <span class="mono">cumulative_volume_delta</span> cannot power this feature (single net number per candle, and F&amp;O-only), but the footprint does not need it. The raw material (per-tick last price + last quantity, plus synchronized depth) is already present on the tick-level <span class="mono">orderbook</span> stream. The single thing to confirm is whether a tick is emitted <b>per executed trade</b> (so <span class="mono">ltq</span> is each print's size) or per order-book change (coalescing trades). That answer decides whether the whole cluster is buildable on the existing stream with no new feed.</p>
 
       <h2 class="sec"><span class="n">7</span>The ask to backend</h2>
-      <div class="callout warn">
-        <h3>Request</h3>
-        <p style="margin-bottom:6px">Provide <b>per-price-level, buy/sell-classified traded volume</b> for all order-book instruments (cash + F&amp;O), delivered live over the market websocket with REST historical backfill. Two acceptable delivery options:</p>
+      <div class="callout">
+        <h3>Request (a confirmation, likely not a new feed)</h3>
+        <p style="margin-bottom:6px">The footprint needs per-trade price + quantity, classified by aggressor. Those fields already appear on the tick-level <span class="mono">orderbook</span> stream, so the primary ask is to confirm its granularity:</p>
         <ul style="margin-top:0">
-          <li><b>Option A (preferred):</b> expose the raw tick-by-tick trade tape (<span class="mono">ts, price, qty</span>). The client/edge computes quote-rule classification and level aggregation, reusing the already-available <span class="mono">l1bid</span>/<span class="mono">l1ask</span>.</li>
-          <li><b>Option B:</b> backend computes and serves footprint buckets directly (<span class="mono">{ level: { bid, ask } }</span> per candle), by extending the existing <span class="mono">cumulative_volume_delta</span> pipeline to (i) cash equities and (ii) per-level granularity.</li>
+          <li><b>Confirm tick granularity.</b> On the default (tick-level) <span class="mono">orderbook</span> stream, does a message fire <b>per executed trade</b> with <span class="mono">ltq</span> = that single trade's quantity? Or does it coalesce trades between order-book updates?</li>
+          <li><b>If per-trade:</b> no new backend. We capture <span class="mono">ltp</span>+<span class="mono">ltq</span> per tick and classify against the same packet's bid/ask (quote rule) to build the footprint, delta, CVD, and bubbles.</li>
+          <li><b>If coalesced / lossy:</b> the one remaining dependency is a true tick-by-tick trade-event feed (<span class="mono">ts, price, qty</span> per trade).</li>
         </ul>
         <div class="flow">
-          <span class="step bad">Missing: trade tape</span><span class="arr">+</span>
-          <span class="step good">Have: l1bid / l1ask</span><span class="arr">→</span>
-          <span class="step">Quote-rule classify</span><span class="arr">→</span>
+          <span class="step good">Have: tick-level orderbook (ltp + ltq + depth)</span><span class="arr">→</span>
+          <span class="step">Quote-rule classify (same packet's bid/ask)</span><span class="arr">→</span>
           <span class="step">Aggregate by level + candle</span><span class="arr">→</span>
           <span class="step good">Footprint</span>
         </div>
-        <p style="margin-bottom:0">Either option extends existing infrastructure (the F&amp;O delta pipeline and the l1 quote capture) rather than a greenfield build.</p>
-        <p style="margin-bottom:0"><b>What this one ask closes:</b> it directly powers the Footprint (1) and Candle Delta Strip (2), covers CVD (3) for cash equities, and, if delivered as the raw tape (Option A), also enables Large Trade Bubbles (4). One data investment, the whole order-flow set.</p>
+        <p style="margin-bottom:0">This rides existing infrastructure (the l1 quote + depth streaming already in place) rather than a greenfield build.</p>
+        <p style="margin-bottom:0"><b>What this closes:</b> if the tick is per-trade, one confirmation unlocks the Footprint (1), Candle Delta Strip (2), CVD for cash (3), and Large Trade Bubbles (4) on the existing stream. The whole order-flow set, likely with no new feed.</p>
       </div>
 
       <h2 class="sec"><span class="n">8</span>Open questions &amp; dependencies</h2>
       <ul>
-        <li>Is a tick-by-tick trade tape captured internally today (even if unexposed)?</li>
+        <li>On the tick-level <span class="mono">orderbook</span> stream, is a message emitted <b>per executed trade</b> (<span class="mono">ltq</span> = that print's quantity), or coalesced per order-book change?</li>
         <li>Can the existing F&amp;O <span class="mono">cumulative_volume_delta</span> pipeline be extended to cash equities, and to per-level granularity?</li>
         <li>Can this be delivered over the existing market websocket, or is a new channel needed?</li>
         <li>Any per-instrument or brokerage-tier entitlement gating on this data?</li>
