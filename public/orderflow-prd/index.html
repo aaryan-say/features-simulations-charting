@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Footprint Cluster Chart: PRD + Simulation</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel2: #f1f3f5;
+    --line: #e3e6ea;
+    --line2: #d3d8de;
+    --ink: #1c2430;
+    --ink2: #515c6b;
+    --ink3: #8a94a2;
+    --buy: #0f9d58;
+    --buy-bg: rgba(15,157,88,0.10);
+    --buy-bg2: rgba(15,157,88,0.22);
+    --buy-ink: #0a6b3b;
+    --sell: #d13438;
+    --sell-bg: rgba(209,52,56,0.09);
+    --sell-bg2: rgba(209,52,56,0.20);
+    --sell-ink: #a01418;
+    --poc: #b8770a;
+    --accent: #2563eb;
+    --amber: #b8770a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-family: "SF Mono", "Cascadia Mono", Consolas, monospace; }
+
+  header {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(255,255,255,0.94); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    padding: 10px 22px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--buy); }
+  .brand h1 { font-size: 15px; margin: 0; font-weight: 650; letter-spacing: .2px; color: var(--ink); }
+  .brand .sub { font-size: 11px; color: var(--ink3); }
+  .tabs { display: flex; gap: 4px; margin-left: auto; }
+  .tab { background: transparent; border: 1px solid transparent; color: var(--ink2); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 550; }
+  .tab:hover { color: var(--ink); background: var(--panel2); }
+  .tab.active { color: var(--accent); background: #eaf1fe; border-color: #c9ddfb; }
+  .badge-live { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--buy); border: 1px solid rgba(15,157,88,.3); background: var(--buy-bg); padding: 3px 8px; border-radius: 999px; }
+  .badge-live .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--buy); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  main { padding: 22px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ---------- PRD (document style) ---------- */
+  .doc { max-width: 940px; margin: 0 auto; }
+  .doc-title { font-size: 24px; font-weight: 700; margin: 4px 0 2px; letter-spacing: -.2px; }
+  .doc-tagline { color: var(--ink2); margin: 0 0 14px; }
+  table.meta { border-collapse: collapse; font-size: 12.5px; margin-bottom: 8px; }
+  table.meta td { padding: 3px 16px 3px 0; color: var(--ink2); }
+  table.meta td b { color: var(--ink); font-weight: 600; }
+  .doc h2.sec { font-size: 15px; margin: 30px 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 9px; }
+  .doc h2.sec .n { color: var(--accent); font-weight: 700; font-size: 13px; }
+  .doc h3 { font-size: 13px; margin: 16px 0 6px; color: var(--ink); }
+  .doc p { margin: 8px 0; color: var(--ink2); }
+  .doc ul { margin: 6px 0; padding-left: 20px; color: var(--ink2); }
+  .doc li { margin: 4px 0; }
+  .doc strong, .doc b { color: var(--ink); }
+  .doc .mono { background: var(--panel2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 12px; }
+
+  table.req { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; background: var(--panel); }
+  table.req th, table.req td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  table.req th { background: var(--panel2); font-weight: 600; color: var(--ink); font-size: 12px; }
+  table.req td { color: var(--ink2); }
+  table.req td:first-child { font-weight: 600; color: var(--ink); white-space: nowrap; }
+
+  .lab { display: inline-block; font-size: 11px; font-weight: 650; padding: 1px 7px; border-radius: 5px; white-space: nowrap; }
+  .lab.ok { color: var(--buy-ink); background: var(--buy-bg); border: 1px solid rgba(15,157,88,.3); }
+  .lab.gap { color: var(--sell-ink); background: var(--sell-bg); border: 1px solid rgba(209,52,56,.3); }
+  .lab.partial { color: #8a5a00; background: rgba(184,119,10,.12); border: 1px solid rgba(184,119,10,.3); }
+
+  .pill { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line2); color: var(--ink2); margin: 2px 5px 2px 0; background: var(--panel); }
+  .pill.in { border-color: rgba(15,157,88,.35); color: var(--buy-ink); background: var(--buy-bg); }
+  .pill.out { border-color: rgba(209,52,56,.3); color: var(--sell-ink); background: var(--sell-bg); }
+
+  .callout { border: 1px solid var(--line2); border-left: 3px solid var(--accent); background: #f8faff; border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+  .callout.warn { border-left-color: var(--sell); background: #fff7f7; }
+  .callout h3 { margin-top: 0; }
+  .doc .btn-jump { display: inline-block; margin-top: 6px; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; font-size: 12px; }
+  .flow .step { background: var(--panel); border: 1px solid var(--line2); border-radius: 8px; padding: 6px 10px; color: var(--ink2); }
+  .flow .step.good { border-color: rgba(15,157,88,.4); color: var(--buy-ink); background: var(--buy-bg); }
+  .flow .step.bad { border-color: rgba(209,52,56,.4); color: var(--sell-ink); background: var(--sell-bg); }
+  .flow .arr { color: var(--ink3); }
+
+  /* ---------- Simulation ---------- */
+  .sim-wrap { max-width: 1240px; margin: 0 auto; }
+  .sim-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .ctl { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+  .ctl label { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: .4px; }
+  select, .btn { background: var(--panel); color: var(--ink); border: 1px solid var(--line2); border-radius: 6px; padding: 5px 8px; font-size: 13px; font-family: inherit; cursor: pointer; }
+  select:focus { outline: 1px solid var(--accent); }
+  .btn:hover { border-color: var(--accent); }
+  .btn.buy { background: var(--buy-bg); color: var(--buy-ink); border-color: rgba(15,157,88,.4); font-weight: 650; }
+  .btn.sell { background: var(--sell-bg); color: var(--sell-ink); border-color: rgba(209,52,56,.4); font-weight: 650; }
+  input[type=range] { accent-color: var(--accent); width: 92px; }
+
+  .sim-shell { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+  .sim-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .sim-head .inst { font-weight: 650; font-size: 15px; }
+  .sim-head .ltp { font-size: 13px; }
+  .sim-head .muted { color: var(--ink3); font-size: 11px; }
+  .trade-btns { display: flex; gap: 8px; }
+
+  .fp-wrap { position: relative; }
+  .fp-scroll { overflow: auto; max-height: 560px; position: relative; }
+  .fp-inner { display: inline-flex; position: relative; }
+  .price-col { position: sticky; left: 0; z-index: 5; background: var(--panel); border-right: 1px solid var(--line2); }
+  .price-col .phead, .cand .chead { height: 40px; }
+  .cand .cfoot, .price-col .pfoot { height: 46px; }
+  .chead { position: sticky; top: 0; z-index: 4; background: var(--panel2); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 4px 6px; font-size: 10px; color: var(--ink2); text-align: center; display: flex; align-items: center; justify-content: center; }
+  .price-col .phead { position: sticky; top: 0; z-index: 6; background: var(--panel2); border-bottom: 1px solid var(--line); font-size: 10px; color: var(--ink3); }
+  .lvl-label { display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; font-size: 11px; color: var(--ink3); border-bottom: 1px dashed var(--line); }
+  .lvl-label.ltp { color: var(--accent); font-weight: 600; background: #eef4ff; }
+  .cand { border-right: 1px solid var(--line); }
+  .cell { display: grid; grid-template-columns: 1fr 1fr; align-items: center; font-size: 10.5px; border-bottom: 1px dashed var(--line); }
+  .cell .b, .cell .a { padding: 0 5px; }
+  .cell .b { text-align: right; color: var(--ink3); }
+  .cell .a { text-align: left; color: var(--ink3); }
+  .cell.has .b, .cell.has .a { color: var(--ink); }
+  .cell .b.imb { background: var(--sell-bg2); color: var(--sell-ink); font-weight: 700; border-radius: 3px; }
+  .cell .a.imb { background: var(--buy-bg2); color: var(--buy-ink); font-weight: 700; border-radius: 3px; }
+  .cell.poc { box-shadow: inset 0 0 0 1.5px var(--poc); }
+  .cell.empty { opacity: .4; }
+  .cell.ltp { background: #eef4ff; }
+  .cfoot { border-right: 1px solid var(--line); border-top: 1px solid var(--line2); padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: var(--panel2); }
+  .cfoot .d { font-weight: 700; font-size: 11px; }
+  .cfoot .d.pos { color: var(--buy); }
+  .cfoot .d.neg { color: var(--sell); }
+  .cfoot .tv, .cfoot .tm { font-size: 9px; color: var(--ink3); }
+  .cand.live .chead { color: var(--buy); font-weight: 700; }
+  .cand.live { background: rgba(15,157,88,.03); }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink3); align-items: center; }
+  .legend .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; border: 1px solid var(--line2); }
+
+  .tip { position: fixed; z-index: 100; pointer-events: none; background: #fff; border: 1px solid var(--line2); border-radius: 8px; padding: 8px 10px; font-size: 11px; box-shadow: 0 8px 24px rgba(16,24,40,.14); display: none; min-width: 150px; }
+  .tip .row { display: flex; justify-content: space-between; gap: 14px; }
+  .tip .row span:first-child { color: var(--ink3); }
+  .tip .hd { font-weight: 650; margin-bottom: 4px; color: var(--ink); }
+
+  .disabled-state { padding: 60px 24px; text-align: center; color: var(--ink2); }
+  .disabled-state .big { font-size: 15px; color: var(--ink); font-weight: 600; margin-bottom: 6px; }
+
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 13px; z-index: 200; opacity: 0; transition: opacity .2s, transform .2s; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+  .note { font-size: 11px; color: var(--ink3); margin-top: 8px; max-width: 1240px; margin-left: auto; margin-right: auto; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <h1>Footprint Cluster Chart</h1>
+      <div class="sub">Product Requirements Document + Live Simulation · Nubra web terminal</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-view="prd">PRD</button>
+    <button class="tab" data-view="sim">Live Simulation</button>
+  </div>
+</header>
+
+<main>
+  <!-- ================= PRD ================= -->
+  <section class="view active" id="view-prd">
+    <div class="doc">
+      <div class="doc-title">Footprint Cluster Chart</div>
+      <p class="doc-tagline">A live, price-level order-flow grid for the Nubra web terminal.</p>
+      <table class="meta">
+        <tr><td><b>Status</b></td><td>Draft for engineering review</td><td><b>Surface</b></td><td>Web terminal (v1)</td></tr>
+        <tr><td><b>Scope</b></td><td>Footprint grid only</td><td><b>Last updated</b></td><td>2026-07-14</td></tr>
+        <tr><td><b>Critical dependency</b></td><td colspan="3">Per-price-level buy/sell-classified traded volume (does not exist today)</td></tr>
+      </table>
+
+      <h2 class="sec"><span class="n">1</span>Summary</h2>
+      <p>A footprint (cluster) chart is a price-level order-flow grid. For every candle it shows, at each price, how much volume traded at the bid (sell-initiated) versus at the ask (buy-initiated). It answers a question standard OHLC candles cannot: <b>who was aggressive, and at which price, inside the bar.</b></p>
+      <p>This is a headline pro-trader feature on Dhan DEXT, GoCharting, NinjaTrader, and Bookmap, and a natural fit for Nubra's active F&amp;O / scalper audience. This document scopes v1, describes the working simulation that accompanies it, specifies what is required from frontend and backend, and presents our findings from live API testing and backend confirmation. The headline finding: <b>the data needed to build this does not exist yet and must be built.</b></p>
+
+      <h2 class="sec"><span class="n">2</span>Feature scope &amp; expectations</h2>
+      <p>A grid, not a chart: columns are candles along a time x-axis, rows are price levels on a shared y-axis, and each cell holds two numbers, bid volume (left) and ask volume (right), for that price in that candle. We deliberately exclude candlestick bodies, VWAP, volume profile, and a cumulative-delta pane; those make it a chart, and are out of scope for v1.</p>
+      <h3>What we expect it to do</h3>
+      <ul>
+        <li>Show per-price-level bid vs ask traded volume for each candle, on a shared price axis so a row is the same price across all candles.</li>
+        <li>Stream the current candle live; freeze closed candles permanently; backfill recent history on open.</li>
+        <li>Surface the analytical reads a footprint is used for: imbalance, per-candle delta, and the highest-volume level.</li>
+      </ul>
+      <h3>Scope</h3>
+      <div>
+        <span class="pill in">Footprint grid</span>
+        <span class="pill in">Bid/ask imbalance highlight</span>
+        <span class="pill in">Per-candle Delta + total volume</span>
+        <span class="pill in">Point of Control</span>
+        <span class="pill in">Hover tooltip</span>
+        <span class="pill in">Timeframe + symbol switch</span>
+        <span class="pill in">Click-to-trade</span>
+        <span class="pill in">Bidirectional scroll</span>
+      </div>
+      <div style="margin-top:6px">
+        <span class="pill out">Delta-on-chart view</span>
+        <span class="pill out">Cumulative Delta line</span>
+        <span class="pill out">Volume / tick bars</span>
+        <span class="pill out">Absorption markers</span>
+        <span class="pill out">Mobile</span>
+      </div>
+
+      <h2 class="sec"><span class="n">3</span>What the simulation demonstrates</h2>
+      <p>The <b>Live Simulation</b> tab is a working proof-of-concept, not a mockup. It runs the <b>real algorithm</b> we would ship, the quote-rule classifier plus price-level and per-candle aggregation, on a synthetic trade tape. Only the raw ticks (price and quantity per trade) are fabricated; every displayed number is computed by the actual pipeline.</p>
+      <p>It therefore validates two things at once: the <b>frontend behaviour</b> (shared-axis grid, live current candle with frozen history, imbalance, POC, delta footer, hover, timeframe/symbol switching, index disabled-state, bidirectional scroll) and the <b>exact data shape</b> we need from backend. If the backend can supply that shape, the frontend is de-risked.</p>
+      <button class="btn-jump" data-jump="sim">Open the Live Simulation</button>
+
+      <h2 class="sec"><span class="n">4</span>Frontend requirements</h2>
+      <table class="req">
+        <tr><th>Area</th><th>Requirement</th></tr>
+        <tr><td>Grid &amp; axis</td><td>Render columns = candles, rows = a shared price axis stepped by a configurable row size. A row maps to a fixed price across all candles; each candle fills only the levels it traded.</td></tr>
+        <tr><td>Live vs frozen</td><td>Only the rightmost (current) candle updates on each tick; closed candles are immutable. On open, backfill N historical candles.</td></tr>
+        <tr><td>Overlays</td><td>Bid/ask imbalance highlight (threshold configurable, default 1.8×), per-candle Delta + total volume footer, Point of Control (highest-volume level).</td></tr>
+        <tr><td>Interactions</td><td>Hover-cell tooltip (bid, ask, delta, total, price); in-widget timeframe and symbol switch; click-to-trade Buy/Sell; scroll both axes with time on x, price on y.</td></tr>
+        <tr><td>States</td><td>Index instruments show a clear disabled empty-state (no order book of their own).</td></tr>
+        <tr><td>Consumes</td><td>The data contract in §6: per-candle, per-level <span class="mono">{bid_qty, ask_qty}</span> live stream + historical backfill.</td></tr>
+      </table>
+
+      <h2 class="sec"><span class="n">5</span>Backend requirements (data contract)</h2>
+      <p>The frontend needs one primitive it does not have today: <b>traded volume, classified as buy- or sell-initiated, bucketed by price level and candle.</b></p>
+      <table class="req">
+        <tr><th>Item</th><th>Requirement</th></tr>
+        <tr><td>Shape</td><td>Per candle, per price level: <span class="mono">{ level: { bid_qty, ask_qty } }</span>. Bid = sell-initiated volume, ask = buy-initiated volume.</td></tr>
+        <tr><td>Classification</td><td>Quote rule (Lee &amp; Ready 1991): trade at/above ask = buy, at/below bid = sell, in-between = tick-rule fallback. Requires the tick-by-tick trade tape plus synchronized top-of-book, or delivery pre-classified.</td></tr>
+        <tr><td>Coverage</td><td>All instruments with an order book: cash equity + F&amp;O. Indices excluded (no book).</td></tr>
+        <tr><td>Delivery</td><td>Live via the market websocket (current candle updates); historical backfill via REST for N recent candles.</td></tr>
+        <tr><td>Granularity</td><td>Bucketable to a configurable price step; timeframes 1m / 3m / 5m / 15m.</td></tr>
+      </table>
+
+      <h2 class="sec"><span class="n">6</span>Findings: current data availability</h2>
+      <p>Investigated via the v3 <span class="mono">/charts/timeseries</span> endpoint (authenticated PROD calls) and confirmed with the backend team.</p>
+      <table class="req">
+        <tr><th>Data</th><th>Status</th><th>Detail</th></tr>
+        <tr>
+          <td><span class="mono">cumulative_volume_delta</span></td>
+          <td><span class="lab partial">Partial</span></td>
+          <td>Backend confirmed it is computed for <b>F&amp;O only, not cash stocks</b>. Consistent with our manual test: RELIANCE (cash stock) returned a hardcoded <b>0 across all 44 one-minute candles</b>; NIFTY (index) omitted the field entirely. Also note it is a <b>single net delta per candle</b>, not a per-level breakdown.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">l1bid</span> / <span class="mono">l1ask</span></td>
+          <td><span class="lab ok">Available</span></td>
+          <td>Returned as real historical time series in the same test. Confirms top-of-book is already captured, which is one half of what quote-rule classification needs.</td>
+        </tr>
+        <tr>
+          <td>Per-level bid/ask traded volume<br>(the footprint primitive)</td>
+          <td><span class="lab gap">Missing</span></td>
+          <td>No endpoint exposes traded volume split by price level and aggressor side. This is the core input the footprint requires.</td>
+        </tr>
+        <tr>
+          <td>Tick-by-tick trade tape<br>(ts, price, qty per trade)</td>
+          <td><span class="lab gap">Missing</span></td>
+          <td>Not exposed via any API. It is the raw source from which per-level classified volume is derived.</td>
+        </tr>
+      </table>
+      <p><b>Interpretation.</b> The one field that resembles order flow, <span class="mono">cumulative_volume_delta</span>, cannot power this feature for two independent reasons: it is a single aggregate number per candle rather than the per-price-level breakdown a footprint is made of, and it exists only for F&amp;O, not for the cash equities we also need to cover.</p>
+
+      <h2 class="sec"><span class="n">7</span>The ask to backend</h2>
+      <div class="callout warn">
+        <h3>Request</h3>
+        <p style="margin-bottom:6px">Provide <b>per-price-level, buy/sell-classified traded volume</b> for all order-book instruments (cash + F&amp;O), delivered live over the market websocket with REST historical backfill. Two acceptable delivery options:</p>
+        <ul style="margin-top:0">
+          <li><b>Option A (preferred):</b> expose the raw tick-by-tick trade tape (<span class="mono">ts, price, qty</span>). The client/edge computes quote-rule classification and level aggregation, reusing the already-available <span class="mono">l1bid</span>/<span class="mono">l1ask</span>.</li>
+          <li><b>Option B:</b> backend computes and serves footprint buckets directly (<span class="mono">{ level: { bid, ask } }</span> per candle), by extending the existing <span class="mono">cumulative_volume_delta</span> pipeline to (i) cash equities and (ii) per-level granularity.</li>
+        </ul>
+        <div class="flow">
+          <span class="step bad">Missing: trade tape</span><span class="arr">+</span>
+          <span class="step good">Have: l1bid / l1ask</span><span class="arr">→</span>
+          <span class="step">Quote-rule classify</span><span class="arr">→</span>
+          <span class="step">Aggregate by level + candle</span><span class="arr">→</span>
+          <span class="step good">Footprint</span>
+        </div>
+        <p style="margin-bottom:0">Either option extends existing infrastructure (the F&amp;O delta pipeline and the l1 quote capture) rather than a greenfield build.</p>
+      </div>
+
+      <h2 class="sec"><span class="n">8</span>Open questions &amp; dependencies</h2>
+      <ul>
+        <li>Is a tick-by-tick trade tape captured internally today (even if unexposed)?</li>
+        <li>Can the existing F&amp;O <span class="mono">cumulative_volume_delta</span> pipeline be extended to cash equities, and to per-level granularity?</li>
+        <li>Can this be delivered over the existing market websocket, or is a new channel needed?</li>
+        <li>Any per-instrument or brokerage-tier entitlement gating on this data?</li>
+        <li>What historical depth is available for backfill?</li>
+      </ul>
+
+      <h2 class="sec"><span class="n">9</span>Risks &amp; limitations</h2>
+      <ul>
+        <li>Quote-rule classification is an approximation, not exchange-tagged aggressor truth. Adequate for v1 (it is what comparable retail tools use); a true aggressor feed is a later accuracy upgrade.</li>
+        <li>The dense grid is desktop-first; mobile needs a separate design pass.</li>
+        <li>Thin/illiquid instruments produce sparse footprints of limited value.</li>
+        <li>A live footprint is data-heavy; it requires the websocket feed, not REST polling.</li>
+        <li>v1 uses same-level imbalance; diagonal imbalance is a v2 refinement.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= SIMULATION ================= -->
+  <section class="view" id="view-sim">
+    <div class="sim-wrap">
+      <div class="sim-controls">
+        <div class="ctl"><label>Symbol</label><select id="sym"></select></div>
+        <div class="ctl"><label>Timeframe</label>
+          <select id="tf">
+            <option value="60">1m</option><option value="180">3m</option>
+            <option value="300" selected>5m</option><option value="900">15m</option>
+          </select>
+        </div>
+        <div class="ctl"><label>Row size</label>
+          <select id="rowmul">
+            <option value="0.5">0.5× (fine)</option><option value="1" selected>1× (default)</option>
+            <option value="2">2× (coarse)</option><option value="4">4× (coarser)</option>
+          </select>
+        </div>
+        <div class="ctl"><label>Imbalance</label>
+          <input type="range" id="imb" min="1.3" max="4" step="0.1" value="1.8" />
+          <span class="mono" id="imbval" style="font-size:12px;color:var(--ink2)">1.8×</span>
+        </div>
+        <button class="btn" id="playpause">Pause</button>
+        <button class="btn" id="reset">Reset</button>
+        <span class="badge-live"><span class="pulse"></span>LIVE · real-time</span>
+      </div>
+
+      <div class="sim-shell">
+        <div class="sim-head">
+          <div>
+            <span class="inst" id="headSym">...</span>
+            <span class="ltp mono" id="headLtp"></span>
+            <div class="muted" id="headMeta"></div>
+          </div>
+          <div class="trade-btns">
+            <button class="btn buy" id="buyBtn">Buy</button>
+            <button class="btn sell" id="sellBtn">Sell</button>
+          </div>
+        </div>
+
+        <div class="fp-wrap">
+          <div class="fp-scroll" id="scroll"><div class="fp-inner" id="inner"></div></div>
+          <div class="disabled-state" id="disabled" style="display:none">
+            <div class="big">Order flow unavailable for indices</div>
+            <div>An index spot has no order book of its own, so bid/ask traded volume cannot be computed.<br/>Open an index <b>future</b> or <b>option</b> instead to see the footprint.</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span><span class="sw" style="background:var(--sell-bg2)"></span>Bid volume (sell-initiated, left)</span>
+          <span><span class="sw" style="background:var(--buy-bg2)"></span>Ask volume (buy-initiated, right)</span>
+          <span><span class="sw" style="box-shadow:inset 0 0 0 2px var(--poc);background:transparent"></span>Point of Control (highest-volume level)</span>
+          <span>Footer: <b class="mono" style="color:var(--buy)">Δ</b> candle delta · V total volume</span>
+        </div>
+      </div>
+      <div class="note"><b>Real-time cadence:</b> a candle closes after its selected timeframe of real elapsed time, so on 5m a new column appears every ~5 minutes, on 1m every ~1 minute, on 15m every ~15 minutes. The LIVE column keeps ticking with new trades the whole interval and its header shows progress (LIVE 0% to 100%); closed candles freeze and never move. Pausing stops the clock. Scroll left/right for history, up/down for price levels. Every number is produced by running the real quote-rule classifier and price-level aggregation on a synthetic trade tape; only the raw ticks are fake.</div>
+    </div>
+  </section>
+</main>
+
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   FOOTPRINT SIMULATION
+   Real pipeline (quote-rule classification + price-level
+   aggregation) run on a synthetic trade tape. Only the raw
+   ticks (price/qty) are fake; the classification and
+   aggregation are the actual algorithm a production build
+   would use on a real tape.
+   ============================================================ */
+
+let SEED = 12345;
+function rng() { SEED |= 0; SEED = (SEED + 0x6D2B79F5) | 0; let t = Math.imul(SEED ^ (SEED >>> 15), 1 | SEED); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+const rand = (a, b) => a + rng() * (b - a);
+function gauss() { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+// `row` = natural (smart-default) price step per footprint level.
+const INSTRUMENTS = [
+  { sym: "NIFTY 14 JUL 24150 CALL", type: "OPT",   tick: 0.05, row: 0.10, base: 27.65,  dec: 2, qty: [40, 900], hasBook: true },
+  { sym: "BANKNIFTY 30 JUL FUT",    type: "FUT",   tick: 0.05, row: 10,   base: 58120,  dec: 1, qty: [15, 260], hasBook: true },
+  { sym: "RELIANCE",                type: "STOCK", tick: 0.05, row: 1.0,  base: 1297.0, dec: 2, qty: [20, 500], hasBook: true },
+  { sym: "NIFTY (Index Spot)",      type: "INDEX", tick: 0.05, row: 5,    base: 24200,  dec: 2, qty: [0, 0],    hasBook: false },
+];
+
+let inst = INSTRUMENTS[0];
+let tfSec = 300, rowMul = 1, imbTh = 1.8;
+let candles = [], liveMid = inst.base, candleCenter = inst.base, lastTradePrice = inst.base;
+let running = true, candleIdx = 0, batchTimer = null;
+const ROW_H = 17, CAND_W = 92, MAX_CANDLES = 60, HIST_BACKFILL = 26, TICK_MS = 1000;
+// candleElapsed counts ~1s ticks into the current candle; a candle closes at tfSec ticks,
+// so on 5m one candle spans ~5 real minutes, on 1m ~1 minute, etc. (pause-safe: only counts while running).
+let candleElapsed = 0, biasState = 0;
+
+const $ = id => document.getElementById(id);
+const rowSize = () => inst.row * rowMul;
+const tickRound = p => Math.round(p / inst.tick) * inst.tick;
+const levelOf = p => +(Math.round(p / rowSize()) * rowSize()).toFixed(6);
+const fmt = p => p.toFixed(inst.dec);
+function compact(v) {
+  const s = v < 0 ? "-" : ""; const a = Math.abs(v);
+  if (a >= 1e7) return s + (a/1e7).toFixed(2) + "Cr";
+  if (a >= 1e5) return s + (a/1e5).toFixed(2) + "L";
+  if (a >= 1e3) return s + (a/1e3).toFixed(1) + "K";
+  return s + Math.round(a).toString();
+}
+
+// ---- THE PIPELINE ----
+function genTrade(bias) {
+  const spread = inst.tick * Math.max(1, Math.round(rand(1, 3)));
+  const bid = tickRound(liveMid - spread / 2);
+  const ask = tickRound(bid + spread);
+  const isBuy = rng() < (0.5 + bias);
+  let price = isBuy ? ask : bid;
+  if (rng() < 0.12) price = tickRound(isBuy ? ask + inst.tick : bid - inst.tick);
+  const q = Math.round(rand(inst.qty[0], inst.qty[1]) * (0.6 + Math.abs(gauss())));
+  return { price, qty: q, bid, ask };
+}
+function classify(trade) {           // QUOTE RULE
+  if (trade.price >= trade.ask) return "buy";
+  if (trade.price <= trade.bid) return "sell";
+  const side = trade.price > lastTradePrice ? "buy" : trade.price < lastTradePrice ? "sell" : null;
+  return side || "buy";
+}
+function applyTrade(c, trade) {
+  const side = classify(trade);
+  lastTradePrice = trade.price;
+  const lvl = levelOf(trade.price);
+  let cell = c.levels.get(lvl);
+  if (!cell) { cell = { bid: 0, ask: 0 }; c.levels.set(lvl, cell); }
+  if (side === "buy") cell.ask += trade.qty; else cell.bid += trade.qty;
+  c.high = Math.max(c.high, trade.price);
+  c.low = Math.min(c.low, trade.price);
+  c.close = trade.price;
+  // intra-candle oscillation (OU around this candle's centre) => candles span ~8-10 levels
+  liveMid += -0.05 * (liveMid - candleCenter) + gauss() * inst.row * 0.72;
+}
+function finalize(c) {
+  let delta = 0, tot = 0, pocLvl = null, pocVol = -1;
+  for (const [lvl, cell] of c.levels) {
+    delta += cell.ask - cell.bid;
+    const v = cell.ask + cell.bid; tot += v;
+    if (v > pocVol) { pocVol = v; pocLvl = lvl; }
+  }
+  c.delta = delta; c.totalVol = tot; c.poc = pocLvl;
+}
+function newCandle() {
+  // slow candle-to-candle trend of the centre (keeps adjacent candles overlapping)
+  candleCenter += gauss() * inst.row * 0.6 + (inst.base - candleCenter) * 0.03;
+  const c = { i: candleIdx++, open: liveMid, high: liveMid, low: liveMid, close: liveMid, levels: new Map(), delta: 0, totalVol: 0, poc: null };
+  candles.push(c);
+  if (candles.length > MAX_CANDLES) candles.shift();
+  return c;
+}
+function runBatch(n) {
+  const c = candles[candles.length - 1];
+  biasState = Math.max(-0.32, Math.min(0.32, biasState + gauss() * 0.04));
+  for (let k = 0; k < n; k++) applyTrade(c, genTrade(biasState));
+  finalize(c);
+}
+// trades scale with candle length so a 15m candle carries more volume than a 1m candle
+function backfillCandle() { newCandle(); runBatch(Math.round(tfSec * rand(2.5, 4.5))); }
+// live candle progress (0-100%) through its real-time interval, for the LIVE header cue
+const liveHead = () => "LIVE " + Math.min(100, Math.round(candleElapsed / tfSec * 100)) + "%";
+
+// ---- FROZEN price axis (historical columns never move) ----
+const scrollEl = $("scroll"), innerEl = $("inner"), tip = $("tip");
+let axisTop = null, axisBot = null, axisArr = [], liveColEl = null;
+function computeAxis() {
+  let hi = -Infinity, lo = Infinity;
+  for (const c of candles) { hi = Math.max(hi, c.high); lo = Math.min(lo, c.low); }
+  const m = 8 * rowSize();
+  axisTop = levelOf(hi) + m; axisBot = levelOf(lo) - m;
+  const n = Math.round((axisTop - axisBot) / rowSize()) + 1;
+  axisArr = [];
+  for (let i = 0; i < n; i++) axisArr.push(+(axisTop - i * rowSize()).toFixed(6));
+}
+const ltpLevelNow = () => levelOf(candles[candles.length - 1].close);
+
+function cellsHTML(c, isLive, ltpLevel) {
+  let html = "";
+  for (const lv of axisArr) {
+    const cell = c.levels.get(lv);
+    const isLtp = lv === ltpLevel && isLive;
+    const cls = "cell" + (cell ? " has" : " empty") + (c.poc === lv && cell ? " poc" : "") + (isLtp ? " ltp" : "");
+    const bidV = cell ? cell.bid : 0, askV = cell ? cell.ask : 0;
+    const bImb = cell && bidV > askV * imbTh, aImb = cell && askV > bidV * imbTh;
+    html += "<div class='" + cls + "' style='height:" + ROW_H + "px' data-lv='" + lv + "' data-live='" + (isLive?1:0) + "' data-ci='" + c.i + "'>" +
+      "<span class='b mono" + (bImb ? " imb" : "") + "'>" + (cell ? compact(bidV) : "") + "</span>" +
+      "<span class='a mono" + (aImb ? " imb" : "") + "'>" + (cell ? compact(askV) : "") + "</span></div>";
+  }
+  return html;
+}
+function footHTML(c) {
+  const dcls = c.delta >= 0 ? "pos" : "neg";
+  return "<span class='d " + dcls + " mono'>Δ " + (c.delta >= 0 ? "+" : "") + compact(c.delta) + "</span>" +
+         "<span class='tv mono'>V " + compact(c.totalVol) + "</span>" +
+         "<span class='tm mono'>" + candleClock(c.i) + "</span>";
+}
+function updateHeader() {
+  $("headSym").textContent = inst.sym;
+  const c0 = candles[candles.length - 1], chg = c0.close - inst.base;
+  $("headLtp").innerHTML = fmt(c0.close) + " <span style='color:" + (chg>=0?"var(--buy)":"var(--sell)") + "'>" + (chg>=0?"+":"") + fmt(chg) + "</span>";
+  $("headMeta").textContent = inst.type + " · NSE · row " + fmt(rowSize()) + " · Δ this candle " + (c0.delta>=0?"+":"") + compact(c0.delta);
+}
+function attachTips(root) {
+  root.querySelectorAll(".cell.has").forEach(el => {
+    el.addEventListener("mousemove", e => {
+      const lv = +el.dataset.lv, isLive = el.dataset.live === "1", ci = +el.dataset.ci;
+      const c = candles.find(x => x.i === ci); if (!c) return;
+      const cell = c.levels.get(lv); if (!cell) return;
+      showTip(e, lv, cell.bid, cell.ask, ci, isLive);
+    });
+    el.addEventListener("mouseleave", hideTip);
+  });
+}
+function buildGrid() {
+  if (!inst.hasBook) { $("disabled").style.display = "block"; scrollEl.style.display = "none"; return; }
+  $("disabled").style.display = "none"; scrollEl.style.display = "block";
+  const ltpLevel = ltpLevelNow();
+  const pin = scrollEl.scrollWidth <= scrollEl.clientWidth || scrollEl.scrollLeft + scrollEl.clientWidth >= scrollEl.scrollWidth - CAND_W * 2;
+  let html = "<div class='price-col' style='width:64px'><div class='phead chead'>Price</div>";
+  for (const lv of axisArr) html += "<div class='lvl-label mono" + (lv === ltpLevel ? " ltp" : "") + "' style='height:" + ROW_H + "px'>" + fmt(lv) + "</div>";
+  html += "<div class='pfoot' style='height:46px;border-top:1px solid var(--line2)'></div></div>";
+  candles.forEach((c, idx) => {
+    const isLive = idx === candles.length - 1;
+    html += "<div class='cand" + (isLive ? " live" : "") + "' style='width:" + CAND_W + "px'" + (isLive ? " id='liveCol'" : "") + ">";
+    html += "<div class='chead'>" + (isLive ? liveHead() : "#" + c.i) + "</div>" + cellsHTML(c, isLive, ltpLevel) + "<div class='cfoot'>" + footHTML(c) + "</div></div>";
+  });
+  innerEl.innerHTML = html;
+  liveColEl = $("liveCol");
+  attachTips(innerEl);
+  if (pin) scrollEl.scrollLeft = scrollEl.scrollWidth;
+  updateHeader();
+}
+function renderLiveColumn() {
+  if (!inst.hasBook || !liveColEl) return;
+  const c = candles[candles.length - 1];
+  liveColEl.innerHTML = "<div class='chead'>" + liveHead() + "</div>" + cellsHTML(c, true, ltpLevelNow()) + "<div class='cfoot'>" + footHTML(c) + "</div>";
+  attachTips(liveColEl);
+  updateHeader();
+}
+
+const SESSION_START = 9 * 60 + 15;
+function candleClock(i) {
+  const total = SESSION_START + i * (tfSec / 60);
+  const h = Math.floor(total / 60) % 24, m = Math.floor(total % 60);
+  return String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+}
+function showTip(e, lv, bidV, askV, ci, isLive) {
+  tip.style.display = "block";
+  tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 180) + "px";
+  tip.style.top = (e.clientY + 14) + "px";
+  const d = askV - bidV;
+  tip.innerHTML =
+    "<div class='hd mono'>" + fmt(lv) + " · " + (isLive ? "LIVE" : "#" + ci) + "</div>" +
+    "<div class='row'><span>Ask (buy)</span><span class='mono' style='color:var(--buy)'>" + askV.toLocaleString("en-IN") + "</span></div>" +
+    "<div class='row'><span>Bid (sell)</span><span class='mono' style='color:var(--sell)'>" + bidV.toLocaleString("en-IN") + "</span></div>" +
+    "<div class='row'><span>Delta</span><span class='mono' style='color:" + (d>=0?"var(--buy)":"var(--sell)") + "'>" + (d>=0?"+":"") + d.toLocaleString("en-IN") + "</span></div>" +
+    "<div class='row'><span>Total</span><span class='mono'>" + (askV+bidV).toLocaleString("en-IN") + "</span></div>";
+}
+function hideTip() { tip.style.display = "none"; }
+
+// ---- lifecycle ----
+function resetSim(reseed) {
+  if (reseed) SEED = (Math.floor(rand(1, 1e9)) ^ (candleIdx * 2654435761)) >>> 0;
+  candles = []; candleIdx = 0; liveMid = inst.base; candleCenter = inst.base; lastTradePrice = inst.base; biasState = 0;
+  candleElapsed = 0;
+  if (inst.hasBook) {
+    for (let i = 0; i < HIST_BACKFILL; i++) backfillCandle();
+    newCandle();
+    computeAxis();
+  }
+  buildGrid();
+}
+function tick() {
+  if (!running || !inst.hasBook) return;
+  runBatch(Math.round(rand(2, 5)));   // ~1 second of trades into the live candle
+  candleElapsed++;
+  if (candleElapsed >= tfSec) {        // candle's real-time interval elapsed: close it, open the next
+    finalize(candles[candles.length - 1]);
+    newCandle();
+    candleElapsed = 0;
+    if (liveMid > axisTop - rowSize() || liveMid < axisBot + rowSize()) computeAxis();
+    buildGrid();
+  } else {
+    renderLiveColumn();
+  }
+}
+function startLoop() { stopLoop(); batchTimer = setInterval(tick, TICK_MS); }
+function stopLoop() { if (batchTimer) clearInterval(batchTimer); batchTimer = null; }
+
+// ---- controls ----
+function fillSymbols() {
+  const s = $("sym"); s.innerHTML = "";
+  INSTRUMENTS.forEach((it, i) => { const o = document.createElement("option"); o.value = i; o.textContent = it.sym + (it.hasBook ? "" : "  (no book)"); s.appendChild(o); });
+}
+$("sym").addEventListener("change", e => { inst = INSTRUMENTS[+e.target.value]; resetSim(true); });
+$("tf").addEventListener("change", e => { tfSec = +e.target.value; resetSim(true); });
+$("rowmul").addEventListener("change", e => { rowMul = +e.target.value; computeAxis(); buildGrid(); });
+$("imb").addEventListener("input", e => { imbTh = +e.target.value; $("imbval").textContent = imbTh.toFixed(1) + "×"; buildGrid(); });
+$("playpause").addEventListener("click", e => { running = !running; e.target.textContent = running ? "Pause" : "Play"; });
+$("reset").addEventListener("click", () => resetSim(true));
+
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2200); }
+$("buyBtn").addEventListener("click", () => toast("Simulated BUY 1 lot @ " + fmt(levelOf(liveMid) + inst.tick) + " (demo only, no order placed)"));
+$("sellBtn").addEventListener("click", () => toast("Simulated SELL 1 lot @ " + fmt(levelOf(liveMid) - inst.tick) + " (demo only, no order placed)"));
+
+// tabs + jump buttons
+function activateView(v) {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x.dataset.view === v));
+  document.querySelectorAll(".view").forEach(x => x.classList.toggle("active", x.id === "view-" + v));
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateView(t.dataset.view)));
+document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => { activateView(b.dataset.jump); window.scrollTo(0,0); }));
+
+// ---- boot ----
+fillSymbols();
+resetSim(false);
+startLoop();
+</script>
+</body>
+</html>
