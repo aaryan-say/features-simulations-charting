@@ -129,7 +129,7 @@
   .golive .gd { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: pulse 1.4s infinite; }
   .price-col { position: sticky; left: 0; z-index: 5; background: var(--panel); border-right: 1px solid var(--line2); }
   .price-col .phead, .cand .chead { height: 40px; }
-  .cand .cfoot, .price-col .pfoot { height: 46px; }
+  .cand .cfoot, .price-col .pfoot { height: 54px; }
   .chead { position: sticky; top: 0; z-index: 4; background: var(--panel2); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 4px 6px; font-size: 10px; color: var(--ink2); text-align: center; display: flex; align-items: center; justify-content: center; }
   .price-col .phead { position: sticky; top: 0; z-index: 6; background: var(--panel2); border-bottom: 1px solid var(--line); font-size: 10px; color: var(--ink3); }
   .lvl-label { display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; font-size: 11px; color: var(--ink3); border-bottom: 1px dashed var(--line); }
@@ -150,6 +150,9 @@
   .cfoot .d.pos { color: var(--buy); }
   .cfoot .d.neg { color: var(--sell); }
   .cfoot .tv, .cfoot .tm { font-size: 9px; color: var(--ink3); }
+  .cfoot .dbar { position: relative; width: 82%; height: 5px; background: var(--line); border-radius: 3px; margin-top: 3px; display: none; }
+  .sim-shell.strip .cfoot .dbar { display: block; }
+  .cfoot .dbar .f { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; }
   .cand.live .chead { color: var(--buy); font-weight: 700; }
   .cand.live { background: rgba(15,157,88,.03); }
 
@@ -220,14 +223,33 @@
         <span class="pill in">Timeframe + symbol switch</span>
         <span class="pill in">Click-to-trade</span>
         <span class="pill in">Bidirectional scroll</span>
+        <span class="pill in">Candle Delta Strip (toggle, on by default)</span>
       </div>
       <div style="margin-top:6px">
         <span class="pill out">Delta-on-chart view</span>
-        <span class="pill out">Cumulative Delta line</span>
         <span class="pill out">Volume / tick bars</span>
         <span class="pill out">Absorption markers</span>
+        <span class="pill out">Large Trade Bubbles</span>
         <span class="pill out">Mobile</span>
       </div>
+
+      <h3>Sub-features unlocked by the same data</h3>
+      <p>The same per-candle, per-level classified volume powers three adjacent features at very different cost. Documenting them here so the one data investment is understood to unlock more than the footprint alone.</p>
+      <table class="req">
+        <tr><th>Sub-feature</th><th>Cost on top of the footprint</th></tr>
+        <tr>
+          <td><b>Candle Delta Strip</b><br><span class="lab ok">In v1</span></td>
+          <td>Free. Per-candle delta is just the sum of <span class="mono">ask_qty − bid_qty</span> across a candle's levels, already computed for the footprint footer. Surfaced as a header toggle (<b>on by default</b>) that shows a per-candle delta bar. No additional backend data.</td>
+        </tr>
+        <tr>
+          <td><b>Cumulative Delta (CVD)</b><br><span class="lab partial">Light</span></td>
+          <td>A running sum of per-candle delta. For <b>F&amp;O</b> this is largely served by the existing <span class="mono">cumulative_volume_delta</span> field (pending confirmation it is populated and truly cumulative on a live F&amp;O instrument). For <b>cash equities</b> it still needs the new per-level data, since that field is F&amp;O-only.</td>
+        </tr>
+        <tr>
+          <td><b>Large Trade Bubbles</b><br><span class="lab gap">Needs raw tape</span></td>
+          <td>Plots individual large <i>trades</i> (single block prints) by exact price, time, and side. Requires per-trade data, so it works only if backend delivers the <b>raw tick-by-tick tape (Option A in §7)</b>, not the aggregated buckets (Option B). Note: this is <b>distinct from Point of Control</b>. POC marks the highest-volume price level (which can be many small trades); it does not detect a single large block.</td>
+        </tr>
+      </table>
 
       <h2 class="sec"><span class="n">3</span>What the simulation demonstrates</h2>
       <p>The <b>Live Simulation</b> tab is a working proof-of-concept, not a mockup. It runs the <b>real algorithm</b> we would ship, the quote-rule classifier plus price-level and per-candle aggregation, on a synthetic trade tape. Only the raw ticks (price and quantity per trade) are fabricated; every displayed number is computed by the actual pipeline.</p>
@@ -239,7 +261,7 @@
         <tr><th>Area</th><th>Requirement</th></tr>
         <tr><td>Grid &amp; axis</td><td>Render columns = candles, rows = a shared price axis stepped by a configurable row size. A row maps to a fixed price across all candles; each candle fills only the levels it traded.</td></tr>
         <tr><td>Live vs frozen</td><td>Only the rightmost (current) candle updates on each tick; closed candles are immutable. On open, backfill N historical candles.</td></tr>
-        <tr><td>Overlays</td><td>Bid/ask imbalance highlight (threshold configurable, default 1.8×), per-candle Delta + total volume footer, Point of Control (highest-volume level).</td></tr>
+        <tr><td>Overlays</td><td>Bid/ask imbalance highlight (threshold configurable, default 1.8×), per-candle Delta + total volume footer, Point of Control (highest-volume level), Candle Delta Strip (header toggle, on by default).</td></tr>
         <tr><td>Interactions</td><td>Hover-cell tooltip (bid, ask, delta, total, price); in-widget timeframe and symbol switch; click-to-trade Buy/Sell; scroll both axes with time on x, price on y.</td></tr>
         <tr><td>States</td><td>Index instruments show a clear disabled empty-state (no order book of their own).</td></tr>
         <tr><td>Consumes</td><td>The data contract in §6: per-candle, per-level <span class="mono">{bid_qty, ask_qty}</span> live stream + historical backfill.</td></tr>
@@ -342,12 +364,13 @@
           <input type="range" id="imb" min="1.3" max="4" step="0.1" value="1.8" />
           <span class="mono" id="imbval" style="font-size:12px;color:var(--ink2)">1.8×</span>
         </div>
+        <button class="btn" id="stripBtn">Δ Strip: On</button>
         <button class="btn" id="playpause">Pause</button>
         <button class="btn" id="reset">Reset</button>
         <span class="badge-live"><span class="pulse"></span>LIVE · real-time</span>
       </div>
 
-      <div class="sim-shell">
+      <div class="sim-shell strip">
         <div class="sim-head">
           <div>
             <span class="inst" id="headSym">...</span>
@@ -515,10 +538,14 @@ function cellsHTML(c, isLive, ltpLevel) {
   }
   return html;
 }
+const maxAbsDelta = () => Math.max(1, ...candles.map(c => Math.abs(c.delta)));
 function footHTML(c) {
   const dcls = c.delta >= 0 ? "pos" : "neg";
+  const p = Math.round(Math.abs(c.delta) / maxAbsDelta() * 100);   // Candle Delta Strip bar (magnitude), colour = sign
+  const col = c.delta >= 0 ? "var(--buy)" : "var(--sell)";
   return "<span class='d " + dcls + " mono'>Δ " + (c.delta >= 0 ? "+" : "") + compact(c.delta) + "</span>" +
-         "<span class='tv mono'>V " + compact(c.totalVol) + "</span>";
+         "<span class='tv mono'>V " + compact(c.totalVol) + "</span>" +
+         "<div class='dbar'><span class='f' style='width:" + p + "%;background:" + col + "'></span></div>";
 }
 function updateHeader() {
   $("headSym").textContent = inst.sym;
@@ -544,7 +571,7 @@ function buildGrid() {
   const pin = scrollEl.scrollWidth <= scrollEl.clientWidth || scrollEl.scrollLeft + scrollEl.clientWidth >= scrollEl.scrollWidth - CAND_W * 2;
   let html = "<div class='price-col' style='width:64px'><div class='phead chead'>Price</div>";
   for (const lv of axisArr) html += "<div class='lvl-label mono" + (lv === ltpLevel ? " ltp" : "") + "' style='height:" + ROW_H + "px'>" + fmt(lv) + "</div>";
-  html += "<div class='pfoot' style='height:46px;border-top:1px solid var(--line2)'></div></div>";
+  html += "<div class='pfoot' style='height:54px;border-top:1px solid var(--line2)'></div></div>";
   candles.forEach((c, idx) => {
     const isLive = idx === candles.length - 1;
     html += "<div class='cand" + (isLive ? " live" : "") + "' style='width:" + CAND_W + "px'" + (isLive ? " id='liveCol'" : "") + ">";
@@ -623,6 +650,12 @@ $("sym").addEventListener("change", e => { inst = INSTRUMENTS[+e.target.value]; 
 $("tf").addEventListener("change", e => { tfSec = +e.target.value; resetSim(true); });
 $("rowmul").addEventListener("change", e => { rowMul = +e.target.value; computeAxis(); buildGrid(); });
 $("imb").addEventListener("input", e => { imbTh = +e.target.value; $("imbval").textContent = imbTh.toFixed(1) + "×"; buildGrid(); });
+let stripOn = true;
+$("stripBtn").addEventListener("click", e => {
+  stripOn = !stripOn;
+  document.querySelector(".sim-shell").classList.toggle("strip", stripOn);
+  e.target.textContent = "Δ Strip: " + (stripOn ? "On" : "Off");
+});
 $("playpause").addEventListener("click", e => { running = !running; e.target.textContent = running ? "Pause" : "Play"; });
 $("reset").addEventListener("click", () => resetSim(true));
 
