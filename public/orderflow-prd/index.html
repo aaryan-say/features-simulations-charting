@@ -223,9 +223,10 @@
         <span class="pill in">Click-to-trade</span>
         <span class="pill in">Bidirectional scroll</span>
         <span class="pill in">Candle Delta Strip (toggle, on by default)</span>
-        <span class="pill in">Large Trade Bubbles (toggle, needs raw tape)</span>
       </div>
       <div style="margin-top:6px">
+        <span class="pill out">Large Trade Bubbles (needs per-trade data)</span>
+        <span class="pill out">Tick-by-tick granularity</span>
         <span class="pill out">Delta-on-chart view</span>
         <span class="pill out">Volume / tick bars</span>
         <span class="pill out">Absorption markers</span>
@@ -239,8 +240,8 @@
         <tr>
           <td><b>1. Footprint Cluster Grid</b></td>
           <td><span class="lab ok">In v1</span></td>
-          <td>Per-trade price + quantity from the tick-level <span class="mono">orderbook</span> stream, classified by aggressor</td>
-          <td>The raw fields likely already stream (ltp+ltq per tick + depth). Pending the tick-granularity check (Section 7); frontend is proven end-to-end in the simulation.</td>
+          <td>Per-second volume + one-side volume + price (<span class="mono">cumulative_volume</span>, <span class="mono">cumulative_volume_delta</span>, close) at 1s</td>
+          <td><b>Buildable now for F&amp;O</b> at per-second resolution, no tick feed: derive buy/sell per second, bucket by price. Cash needs the aggressor split extended. Frontend proven in the simulation.</td>
         </tr>
         <tr>
           <td><b>2. Candle Delta Strip</b></td>
@@ -251,14 +252,14 @@
         <tr>
           <td><b>3. Cumulative Delta (CVD)</b></td>
           <td><span class="lab ok">Available (F&amp;O)</span></td>
-          <td>A cumulative delta series</td>
-          <td><b>Confirmed live:</b> <span class="mono">cumulative_volume_delta</span> already <b>is</b> the CVD line for F&amp;O, populated down to 1-second resolution. Just plot it, no backend work. <b>Cash</b> equities return 0, so cash CVD rides feature 1's data.</td>
+          <td>Per-second buy and sell volume</td>
+          <td><b>Available for F&amp;O:</b> net CVD = running sum of (buy &minus; sell) per second = <span class="mono">2&middot;cvd &minus; cumulative_volume</span>, from the confirmed 1s fields. No backend work. <b>Cash</b> returns 0, so cash CVD needs the aggressor split extended.</td>
         </tr>
         <tr>
           <td><b>4. Large Trade Bubbles</b></td>
-          <td><span class="lab partial">Conditional</span></td>
-          <td>Per-<b>individual</b>-trade size (each print), from the tick-level stream</td>
-          <td>A footprint overlay toggle (<b>Bubbles</b>), like the Delta Strip, marking large single trades on the grid cell where they printed. Feasible if the tick-level <span class="mono">orderbook</span> stream is truly per-trade (Section 7); if it coalesces trades, this needs a per-trade event feed. <b>Distinct from Point of Control</b> (POC = busiest level, often many small trades; not a single block).</td>
+          <td><span class="lab gap">Out (per-second)</span></td>
+          <td>Per-<b>individual</b>-trade size (each print)</td>
+          <td>Not feasible under the per-second decision: isolating a single large block needs per-trade data, which per-second aggregation cannot provide. Dropped for now; would only return if a true per-trade feed is added later. <b>Distinct from Point of Control</b> (POC = busiest level, which we do keep).</td>
         </tr>
       </table>
 
@@ -272,21 +273,20 @@
         <tr><th>Area</th><th>Requirement</th></tr>
         <tr><td>Grid &amp; axis</td><td>Render columns = candles, rows = a shared price axis stepped by a configurable row size. A row maps to a fixed price across all candles; each candle fills only the levels it traded.</td></tr>
         <tr><td>Live vs frozen</td><td>Only the rightmost (current) candle updates on each tick; closed candles are immutable. On open, backfill N historical candles.</td></tr>
-        <tr><td>Overlays &amp; toggles</td><td>Bid/ask imbalance highlight (threshold configurable, default 1.8×), per-candle Delta + total volume footer, Point of Control (highest-volume level). Header toggles: Candle Delta Strip (on by default) and Large Trade Bubbles (needs the raw tape).</td></tr>
+        <tr><td>Overlays &amp; toggles</td><td>Bid/ask imbalance highlight (threshold configurable, default 1.8×), per-candle Delta + total volume footer, Point of Control (highest-volume level), and the Candle Delta Strip toggle (on by default). Built per-second; Large Trade Bubbles is out of scope (needs per-trade data).</td></tr>
         <tr><td>Interactions</td><td>Hover-cell tooltip (bid, ask, delta, total, price); in-widget timeframe and symbol switch; click-to-trade Buy/Sell; scroll both axes with time on x, price on y.</td></tr>
         <tr><td>States</td><td>Index instruments show a clear disabled empty-state (no order book of their own).</td></tr>
         <tr><td>Consumes</td><td>The tick-level <span class="mono">orderbook</span> stream (Section 5): per-trade <span class="mono">ltp</span>+<span class="mono">ltq</span> plus bid/ask depth per tick; classifies and buckets client-side.</td></tr>
       </table>
 
       <h2 class="sec"><span class="n">5</span>Backend requirements (data contract)</h2>
-      <p>The frontend needs one primitive: <b>each executed trade's price + quantity</b>, which it classifies and buckets itself. This likely already streams; the contract below is what we consume.</p>
+      <p><b>Granularity target: per-second</b> (explicitly not tick-by-tick). We consume 1-second bars and derive the footprint client-side, no tick feed.</p>
       <table class="req">
         <tr><th>Item</th><th>Requirement</th></tr>
-        <tr><td>Source</td><td>The tick-level <span class="mono">orderbook</span> websocket: per tick, <span class="mono">ltp</span> (last traded price), <span class="mono">ltq</span> (last traded quantity), <span class="mono">volume</span>, and the top bid/ask levels, in one packet.</td></tr>
-        <tr><td>Granularity (to confirm)</td><td>A message per executed trade, so <span class="mono">ltq</span> is each individual print's size (not coalesced across trades). This is the one open verification.</td></tr>
-        <tr><td>Classification</td><td>Done client-side via the quote rule (Lee &amp; Ready 1991): trade at/above ask = buy, at/below bid = sell, else tick-rule fallback. Uses the bid/ask in the same packet, so no separate quote feed needed.</td></tr>
-        <tr><td>Coverage</td><td>All instruments with an order book: cash equity + F&amp;O. Indices excluded (no book).</td></tr>
-        <tr><td>Aggregation</td><td>Client-side: bucket classified volume by price level (configurable step) and by candle (1m / 3m / 5m / 15m).</td></tr>
+        <tr><td>Source</td><td>1-second bars (from <span class="mono">/charts/timeseries</span> at <span class="mono">interval 1s</span>, or the equivalent 1s stream): <span class="mono">cumulative_volume</span>, <span class="mono">cumulative_volume_delta</span>, and <span class="mono">close</span> per second. All three confirmed live at 1s for F&amp;O.</td></tr>
+        <tr><td>Derivation (per second)</td><td><span class="mono">buy = &Delta;cvd</span>, <span class="mono">sell = &Delta;volume &minus; &Delta;cvd</span>; net delta = <span class="mono">2&middot;cvd &minus; cumulative_volume</span>. No classification step needed for F&amp;O (the backend already split it).</td></tr>
+        <tr><td>Coverage</td><td>F&amp;O today. Cash equities return <span class="mono">cumulative_volume_delta = 0</span>, so they need the split extended (or per-second quote-rule classification via <span class="mono">l1bid</span>/<span class="mono">l1ask</span>). Indices excluded (no book).</td></tr>
+        <tr><td>Aggregation</td><td>Client-side: bucket per-second buy/sell by price level (from that second's price) and by candle (1m / 3m / 5m / 15m). Resolution is one price bucket per second.</td></tr>
       </table>
 
       <h2 class="sec"><span class="n">6</span>Findings: current data availability</h2>
@@ -296,7 +296,7 @@
         <tr>
           <td><span class="mono">cumulative_volume_delta</span></td>
           <td><span class="lab ok">Available (F&amp;O)</span></td>
-          <td>Live-tested at <b>1-second</b> interval: a NIFTY ATM option returned a real, per-second, <b>cumulative</b> delta series (<b>14,776 points, all non-zero, ~14,775 distinct, rising 171 &rarr; 4.95M</b> through the session). This <b>is</b> the CVD line. RELIANCE (cash stock) was <b>0 at every one of 19,930 one-second points</b>, confirming it is <b>computed for F&amp;O only</b>. It is one cumulative value per timestamp, not a per-price-level breakdown.</td>
+          <td>Live-tested at <b>1-second</b> interval on a NIFTY ATM option: real and populated (14,776 points), and <b>strictly monotonic</b> (0 decreases across ~14,775 seconds, ending ~49% of total day volume). So it is <b>not net delta</b> (net would oscillate up and down); it behaves like <b>cumulative buy-initiated volume</b>. RELIANCE (cash stock) was <b>0 at all 19,930 points</b>, confirming it is <b>F&amp;O only</b>. Exact definition to confirm with backend, but empirically it gives one aggressor side's volume per second.</td>
         </tr>
         <tr>
           <td><span class="mono">l1bid</span> / <span class="mono">l1ask</span></td>
@@ -314,30 +314,29 @@
           <td>No endpoint returns per-trade data pre-tagged buy/sell-initiated, or ready-made per-level footprint buckets. These are computed client-side from the tick-level <span class="mono">orderbook</span> stream: capture ltp+ltq per tick and classify against the same packet's bid/ask via the quote rule.</td>
         </tr>
       </table>
-      <p><b>Interpretation.</b> Two separate conclusions. (1) <b>CVD and per-bar delta are available today for F&amp;O</b>: <span class="mono">cumulative_volume_delta</span> is a real cumulative delta series down to 1-second resolution (confirmed live), so the CVD line is a direct plot and the Delta Strip is its per-bar difference. For cash equities the field is 0, so those need building. (2) The <b>footprint grid</b> is a different requirement: it needs per-<i>price-level</i> buy/sell volume, which this scalar field does not provide. That per-level data is reconstructed from the tick-level <span class="mono">orderbook</span> stream (per-tick last price + last quantity + synchronized depth); the one open check is whether a tick fires <b>per executed trade</b> (so <span class="mono">ltq</span> is each print's size) or coalesces trades. Note the existence of a real F&amp;O <span class="mono">cumulative_volume_delta</span> proves the backend <b>already classifies executed trades by aggressor internally</b>, so per-level buckets and cash coverage are extensions of an existing pipeline, not a greenfield build.</p>
+      <p><b>Interpretation.</b> We are targeting <b>per-second</b> granularity (not tick-by-tick), and the 1-second test shows that is achievable for F&amp;O <b>with no tick feed</b>. Per second we have total volume (from <span class="mono">cumulative_volume</span>) and one aggressor side's volume (from <span class="mono">cumulative_volume_delta</span>). From those two: <b>buy = &Delta;cvd, sell = &Delta;volume &minus; &Delta;cvd</b> (both non-negative; verified <span class="mono">|&Delta;cvd| &le; &Delta;volume</span> for every one of the ~14,775 seconds). Bucketing that by the second's price gives a <b>per-second-resolution footprint, per-bar delta, and net CVD for F&amp;O</b>. Two caveats: cash equities return 0 (need the aggressor split extended), and <b>Large Trade Bubbles is out</b> under per-second, since isolating a single large print needs per-trade data. The existence of a real F&amp;O <span class="mono">cumulative_volume_delta</span> proves the backend <b>already classifies executed trades by aggressor</b>, so cash coverage is a pipeline extension, not greenfield.</p>
 
       <h2 class="sec"><span class="n">7</span>The ask to backend</h2>
       <div class="callout">
         <h3>Request</h3>
-        <p style="margin-bottom:6px"><b>Already available (no ask):</b> CVD and per-bar delta for <b>F&amp;O</b>. <span class="mono">cumulative_volume_delta</span> is live down to 1-second resolution (confirmed). Three items remain:</p>
+        <p style="margin-bottom:6px">Granularity target is <b>per-second</b>, not tick-by-tick. <b>Already available (no ask):</b> for <b>F&amp;O</b>, the per-second footprint, delta, and CVD are all derivable from the confirmed 1s fields (<span class="mono">cumulative_volume</span> + <span class="mono">cumulative_volume_delta</span> + <span class="mono">close</span>). Two items remain:</p>
         <ul style="margin-top:0">
-          <li><b>Footprint per-level data.</b> Confirm the tick granularity of the default (tick-level) <span class="mono">orderbook</span> stream: does a message fire <b>per executed trade</b> with <span class="mono">ltq</span> = that single trade's quantity, or coalesce trades? If per-trade, we build the per-level footprint client-side (capture ltp+ltq per tick, classify against the same packet's bid/ask). If coalesced, expose a true tick-by-tick trade-event feed.</li>
-          <li><b>Cash-equity delta/CVD.</b> <span class="mono">cumulative_volume_delta</span> returns 0 for cash stocks. Extend the existing F&amp;O aggressor-classification pipeline to cash equities.</li>
-          <li><b>Leverage what exists.</b> A real F&amp;O <span class="mono">cumulative_volume_delta</span> proves aggressor classification is already done server-side. Per-level footprint buckets and cash coverage are extensions of that pipeline, not greenfield.</li>
+          <li><b>Confirm the field definition.</b> The 1s <span class="mono">cumulative_volume_delta</span> is strictly monotonic (never decreases), so it reads as <b>cumulative buy-initiated volume</b>, not net delta. Confirm this so our <span class="mono">buy = &Delta;cvd</span> / <span class="mono">sell = &Delta;volume &minus; &Delta;cvd</span> derivation is correct.</li>
+          <li><b>Cash-equity coverage.</b> <span class="mono">cumulative_volume_delta</span> returns 0 for cash stocks. Extend the existing F&amp;O aggressor-classification pipeline to cash equities (a real F&amp;O value proves the classification is already done server-side, so this is an extension, not greenfield).</li>
         </ul>
         <div class="flow">
-          <span class="step good">Have: tick-level orderbook (ltp + ltq + depth)</span><span class="arr">→</span>
-          <span class="step">Quote-rule classify (same packet's bid/ask)</span><span class="arr">→</span>
-          <span class="step">Aggregate by level + candle</span><span class="arr">→</span>
-          <span class="step good">Footprint</span>
+          <span class="step good">Have (F&amp;O, 1s): cumulative_volume + cumulative_volume_delta + close</span><span class="arr">→</span>
+          <span class="step">buy = &Delta;cvd, sell = &Delta;vol &minus; &Delta;cvd</span><span class="arr">→</span>
+          <span class="step">Bucket by price + candle</span><span class="arr">→</span>
+          <span class="step good">Footprint / Delta / CVD</span>
         </div>
-        <p style="margin-bottom:0">This rides existing infrastructure (the l1 quote + depth streaming already in place) rather than a greenfield build.</p>
-        <p style="margin-bottom:0"><b>Where the four features stand:</b> CVD (3) and Delta Strip (2) are available for F&amp;O today. If the tick-level stream is per-trade, that also unlocks the Footprint grid (1) and Large Trade Bubbles (4), plus delta/CVD for cash, on the existing stream, with no new feed.</p>
+        <p style="margin-bottom:0">This uses data already served at 1s; no new feed.</p>
+        <p style="margin-bottom:0"><b>Where the four features stand:</b> Footprint (1), Delta Strip (2), and CVD (3) are buildable for <b>F&amp;O</b> at per-second today. <b>Cash</b> needs the split extended. <b>Large Trade Bubbles (4) is dropped</b> under the per-second decision (it needs per-trade sizes).</p>
       </div>
 
       <h2 class="sec"><span class="n">8</span>Open questions &amp; dependencies</h2>
       <ul>
-        <li>On the tick-level <span class="mono">orderbook</span> stream, is a message emitted <b>per executed trade</b> (<span class="mono">ltq</span> = that print's quantity), or coalesced per order-book change?</li>
+        <li>Confirm the exact definition of <span class="mono">cumulative_volume_delta</span> (it reads as cumulative buy-initiated volume, since it never decreases). Is <span class="mono">buy = &Delta;cvd</span>, <span class="mono">sell = &Delta;volume &minus; &Delta;cvd</span> the correct split?</li>
         <li>Can the existing F&amp;O <span class="mono">cumulative_volume_delta</span> pipeline be extended to cash equities, and to per-level granularity?</li>
         <li>Can this be delivered over the existing market websocket, or is a new channel needed?</li>
         <li>Any per-instrument or brokerage-tier entitlement gating on this data?</li>
