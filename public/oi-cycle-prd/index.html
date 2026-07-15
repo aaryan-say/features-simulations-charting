@@ -94,31 +94,32 @@
       <div class="doc-title">OI Positioning Cycle</div>
 
       <h2 class="sec"><span class="n">1</span>Summary</h2>
-      <p>A rotation graph for F&amp;O traders. It uses the same visual as a Relative Rotation Graph (a scatter with four quadrants and trailing tails), but the axes are the two things F&amp;O positioning turns on: <b>price change (X)</b> and <b>open-interest change (Y)</b>. Each instrument is plotted by how its price and OI moved over the period, and its tail shows how it has rotated through the positioning regimes over the last few periods.</p>
-      <p>The four quadrants are the standard F&amp;O read: <b>Long Buildup</b> (price up, OI up), <b>Short Buildup</b> (price down, OI up), <b>Long Unwinding</b> (price down, OI down), <b>Short Covering</b> (price up, OI down). Scoped to <b>options / F&amp;O only</b> (OI is a derivatives concept; cash equities have none).</p>
+      <p>A rotation graph for <b>options traders</b>. It uses the same visual as a Relative Rotation Graph (a scatter with four quadrants and trailing tails), but the entities plotted are <b>option contracts (strikes)</b>, and the axes are the two things option positioning turns on: the option's <b>price change (X)</b> and its <b>open-interest change (Y)</b>. Each strike is plotted by how its own price and OI moved over the period, and its tail shows how it has rotated over the last few periods.</p>
+      <p>The four quadrants are the standard buildup/unwinding read, applied per strike: <b>Long Buildup</b> (option price up, OI up = buyers accumulating), <b>Short Buildup</b> (price down, OI up = writers accumulating), <b>Long Unwinding</b> (price down, OI down = longs exiting), <b>Short Covering</b> (price up, OI down = writers buying back). Scoped to <b>options only</b> (per-strike option OI).</p>
 
       <h2 class="sec"><span class="n">2</span>Scope &amp; expectations</h2>
       <div>
+        <span class="pill in">Option strikes (CE / PE) as the entities</span>
         <span class="pill in">Rotation graph (price change x OI change)</span>
-        <span class="pill in">Four OI quadrants</span>
+        <span class="pill in">Four buildup/unwinding quadrants</span>
         <span class="pill in">Trajectory tails</span>
         <span class="pill in">Classification table</span>
-        <span class="pill in">Interval + tail length</span>
-        <span class="pill in">F&amp;O instrument universe</span>
+        <span class="pill in">Underlying + expiry + interval + tail</span>
       </div>
       <div style="margin-top:6px">
+        <span class="pill out">Underlying/futures OI cycle (different feature)</span>
         <span class="pill out">Cash equities (no OI)</span>
         <span class="pill out">IV / Greeks cycle (data-blocked)</span>
         <span class="pill out">Investor RRG (separate feature)</span>
         <span class="pill out">Mobile</span>
       </div>
-      <h3>What it tells a trader</h3>
+      <h3>What it tells an options trader (per strike)</h3>
       <ul>
-        <li><b>Long Buildup</b>: fresh longs, bullish conviction building.</li>
-        <li><b>Short Buildup</b>: fresh shorts, bearish conviction building.</li>
-        <li><b>Long Unwinding</b>: longs exiting, bullish conviction fading.</li>
-        <li><b>Short Covering</b>: shorts exiting, often a squeeze / bounce.</li>
-        <li>The <b>tail</b> is the edge: watching an instrument rotate (e.g. Short Buildup then into Short Covering) flags a shift before the label does.</li>
+        <li><b>Long Buildup</b>: buyers accumulating that option (call buying = bullish lean; put buying = bearish/hedging).</li>
+        <li><b>Short Buildup</b>: writers accumulating (call writing = resistance at that strike; put writing = support).</li>
+        <li><b>Long Unwinding</b>: option longs exiting that strike.</li>
+        <li><b>Short Covering</b>: writers buying back (call short-covering can precede an up-move; put short-covering a down-move).</li>
+        <li>The <b>tail</b> is the edge: watching a strike rotate (e.g. call Short Buildup then Short Covering) flags writers capitulating before the label flips.</li>
       </ul>
 
       <h2 class="sec"><span class="n">3</span>What the simulation demonstrates</h2>
@@ -128,30 +129,29 @@
       <h2 class="sec"><span class="n">4</span>Frontend requirements</h2>
       <table class="req">
         <tr><th>Area</th><th>Requirement</th></tr>
-        <tr><td>Rotation graph</td><td>Scatter with origin at (0,0); X = price % change, Y = OI % change; four quadrant backgrounds and labels; auto-scaling axes.</td></tr>
-        <tr><td>Tails</td><td>Per instrument, join the last N periods into a trajectory ending at the current point; tail length configurable (default 5).</td></tr>
-        <tr><td>Classification</td><td>Quadrant = sign of (price change, OI change). Side table lists each instrument's state, price change, and OI change.</td></tr>
-        <tr><td>Controls</td><td>Interval (daily / weekly), tail length, instrument universe (an F&amp;O watchlist / index constituents).</td></tr>
-        <tr><td>Consumes</td><td>Per instrument per period: price % change and OI % change (Section 5).</td></tr>
+        <tr><td>Rotation graph</td><td>Scatter with origin at (0,0); X = option price % change, Y = option OI % change; four quadrant backgrounds and labels; auto-scaling axes. Each plotted point is an option strike (CE/PE).</td></tr>
+        <tr><td>Tails</td><td>Per strike, join the last N periods into a trajectory ending at the current point; tail length configurable (default 5).</td></tr>
+        <tr><td>Classification</td><td>Quadrant = sign of (price change, OI change) for that strike. Side table lists each strike's state, price change, and OI change.</td></tr>
+        <tr><td>Controls</td><td>Underlying + expiry (selects the option chain), interval (daily / weekly), tail length, and which strikes to show (around ATM / most-active).</td></tr>
+        <tr><td>Consumes</td><td>Per strike per period: option price % change and option OI % change (Section 5).</td></tr>
       </table>
 
       <h2 class="sec"><span class="n">5</span>Data contract (what the frontend consumes)</h2>
-      <p>Descriptive, not an ask. Per instrument, per period, two numbers: price change and OI change. Both from data Nubra already has.</p>
+      <p>Descriptive, not an ask. Per option strike, per period, two numbers: the option's price change and its OI change. Both from data Nubra already has.</p>
       <table class="req">
         <tr><th>Item</th><th>Detail</th></tr>
-        <tr><td>Price change</td><td><span class="mono">close</span> series at the chosen interval from <span class="mono">/charts/timeseries</span> (confirmed: 1 year of daily closes returns cleanly).</td></tr>
-        <tr><td>OI change</td><td>OI at the F&amp;O level. Live OI change is confirmed (the OI build-up screener returns real call/put/combined OI change for NIFTY, BANKNIFTY, RELIANCE). For the tails, the OI series at the interval (<span class="mono">cumulative_oi</span> / <span class="mono">cumulative_fut_oi</span>) is the one piece under verification (Section 6).</td></tr>
-        <tr><td>Classification</td><td>Client-side: quadrant from the signs; magnitudes give the plot position. No proprietary normalization (unlike a relative-strength RRG).</td></tr>
-        <tr><td>Coverage</td><td>F&amp;O instruments only (futures OI per underlying, or aggregate F&amp;O OI). Cash equities excluded (no OI).</td></tr>
+        <tr><td>Strike set</td><td>The option chain for a chosen underlying + expiry (<span class="mono">/optionchains/:asset</span>), which returns each strike's <span class="mono">oi</span>, <span class="mono">prev_oi</span>, <span class="mono">ltp</span>. Confirmed available.</td></tr>
+        <tr><td>Current point</td><td>Per strike: OI change = <span class="mono">oi &minus; prev_oi</span> (from the chain), price change from <span class="mono">ltp</span> vs prior. Live OI change is confirmed (the OI build-up screener returns real per-option OI change).</td></tr>
+        <tr><td>Tails</td><td>Per strike, the last N periods of option price + OI. Sourced from per-option history (<span class="mono">/charts/timeseries</span> on the option symbol). Under verification (Section 6); options are short-lived, so the tail is bounded by the option's age.</td></tr>
+        <tr><td>Classification</td><td>Client-side: quadrant from the signs; magnitudes give the plot position. No proprietary normalization.</td></tr>
       </table>
 
       <h2 class="sec"><span class="n">6</span>Findings: data availability</h2>
       <table class="req">
         <tr><th>Data</th><th>Status</th><th>Detail</th></tr>
-        <tr><td>Live OI change</td><td><span class="lab ok">Confirmed</span></td><td>The OI build-up screener returned real, live call/put/combined OI change and bias for NIFTY, BANKNIFTY, RELIANCE.</td></tr>
-        <tr><td>Price history (close)</td><td><span class="lab ok">Confirmed</span></td><td>247 daily closes over a full year for NIFTY and RELIANCE from <span class="mono">/charts/timeseries</span>.</td></tr>
-        <tr><td>OI history for tails</td><td><span class="lab partial">Verifying</span></td><td>Whether <span class="mono">cumulative_oi</span> / <span class="mono">cumulative_fut_oi</span> return a daily/weekly series (for the trajectory). Live OI is confirmed; this checks the history depth. A short test settles it.</td></tr>
-        <tr><td>IV / Greeks cycle</td><td><span class="lab gap">Blocked</span></td><td>Underlyings carry no IV/Greeks; per-option IV is only ~4 weeks (option lifetime) with no per-underlying series. An IV cycle would need a new feed. Out of scope here.</td></tr>
+        <tr><td>Per-strike OI (current)</td><td><span class="lab ok">Confirmed</span></td><td>The option chain returns <span class="mono">oi</span> and <span class="mono">prev_oi</span> per strike; the OI build-up screener returned real live per-option OI change for NIFTY, BANKNIFTY, RELIANCE. The current positioning point per strike is available.</td></tr>
+        <tr><td>Per-option history for tails</td><td><span class="lab partial">Verifying</span></td><td>Whether the option symbol returns an OI / price series for the trajectory. Per-option history is inherently short (option lifetime): the IV test showed the ATM option returned ~4 weeks of daily points, which is enough for a 5-period tail but bounds the depth. The OI-history test confirms the OI field specifically.</td></tr>
+        <tr><td>IV / Greeks cycle</td><td><span class="lab gap">Blocked</span></td><td>Underlyings carry no IV/Greeks; per-option IV is only ~4 weeks with no per-underlying series. An IV cycle would need a new feed. Out of scope here.</td></tr>
       </table>
 
       <h2 class="sec"><span class="n">7</span>The ask to backend</h2>
@@ -159,24 +159,24 @@
         <h3>Request (small)</h3>
         <p style="margin-bottom:6px">This feature is almost entirely client-side on data that exists. One verification:</p>
         <ul style="margin-top:0">
-          <li><b>OI history series.</b> Confirm <span class="mono">cumulative_oi</span> / <span class="mono">cumulative_fut_oi</span> return a daily/weekly series per F&amp;O instrument (needed for the tails). Live OI change is already available; if the history returns, there is <b>no backend build</b> for this feature.</li>
-          <li><b>Confirm the OI level used.</b> Which OI to represent an underlying: aggregate F&amp;O OI, futures-only OI, or ATM-band option OI. Affects how a name is classified.</li>
+          <li><b>Per-option history for tails.</b> Confirm the option symbol returns an OI (and price) series at daily/weekly for the trajectory. The current per-strike point is already available from the chain; if the short per-option history returns, there is <b>no backend build</b> for this feature.</li>
+          <li><b>Strike universe.</b> Which strikes to plot: a band around ATM (e.g. +/-3 strikes), the most-active by OI/volume, or user-selected. Affects readability and relevance.</li>
         </ul>
       </div>
 
       <h2 class="sec"><span class="n">8</span>Open questions</h2>
       <ul>
-        <li>Does OI history come back at daily and weekly for the tails, and how far back?</li>
-        <li>Per-underlying OI definition (futures vs aggregate vs option-band)?</li>
-        <li>Expiry handling: OI resets/rolls at expiry, which can distort period-over-period OI change. Roll-adjust, or note it?</li>
-        <li>Universe: fixed F&amp;O list, index constituents, or the user's watchlist?</li>
+        <li>Does per-option OI/price history come back at daily and weekly for the tails, and how far back within the option's life?</li>
+        <li>Strike universe: band around ATM, most-active by OI/volume, or user-selected? How many strikes stay readable?</li>
+        <li>Short-dated options: near expiry the option's own life limits the tail; do we switch to the next expiry, and how is that transition shown?</li>
+        <li>Which underlyings/expiries to offer, and default (near expiry vs monthly)?</li>
       </ul>
 
       <h2 class="sec"><span class="n">9</span>Risks &amp; limitations</h2>
       <ul>
-        <li>OI is F&amp;O positioning intent, not a price prediction; the quadrants describe what positioning is doing, not a signal to act on blindly.</li>
-        <li>Expiry rollover distorts OI change (OI migrates to the next series); needs roll-adjustment or a clear caveat.</li>
-        <li>Thin F&amp;O names have noisy OI; classification can flip on small moves.</li>
+        <li>Per-strike OI is option positioning intent (buying vs writing), not a price prediction; the quadrants describe what positioning is doing, not a signal to act on blindly.</li>
+        <li>Tail depth is bounded by the option's age (a newly listed strike has a short tail); near expiry the tail shortens further.</li>
+        <li>Far-OTM / illiquid strikes have thin OI; classification can flip on small moves.</li>
         <li>Dense graph is desktop-first; mobile needs a rethink.</li>
       </ul>
     </div>
@@ -186,6 +186,7 @@
   <section class="view" id="view-sim">
     <div class="sim-wrap">
       <div class="sim-controls">
+        <div class="ctl"><label>Underlying</label><select id="underlying"><option>NIFTY 21 Jul</option><option>BANKNIFTY 30 Jul</option></select></div>
         <div class="ctl"><label>Interval</label><select id="interval"><option>Daily</option><option selected>Weekly</option></select></div>
         <div class="ctl"><label>Tail</label><select id="tail"><option>3</option><option selected>5</option><option>8</option></select></div>
         <button class="btn" id="pause">Pause</button>
@@ -194,13 +195,13 @@
       </div>
       <div class="sim-shell">
         <div class="sim-head">
-          <div><span class="inst">Positioning Cycle</span> <span class="muted">Price change x OI change · F&amp;O</span></div>
+          <div><span class="inst">Options Positioning Cycle</span> <span class="muted" id="simMeta">Each strike by its price change x OI change</span></div>
           <span class="badge-live"><span class="pulse"></span>LIVE</span>
         </div>
         <div class="sim-body">
           <div class="chart"><div id="cycleChart"></div></div>
           <div class="side">
-            <table class="cls"><thead><tr><th>Symbol</th><th>State</th><th>Price</th><th>OI</th></tr></thead><tbody id="clsBody"></tbody></table>
+            <table class="cls"><thead><tr><th>Strike</th><th>State</th><th>Price</th><th>OI</th></tr></thead><tbody id="clsBody"></tbody></table>
           </div>
         </div>
         <div class="legend">
@@ -211,7 +212,7 @@
           <span>Tail = last N periods; the dot is the current period.</span>
         </div>
       </div>
-      <div class="note">Each instrument is plotted by its price change (x) and OI change (y) for the period, with a rolling tail of the last N periods. Quadrant = the signs of the two changes. Runs the real classification and tail logic on synthetic price/OI moves; only the raw moves are fabricated.</div>
+      <div class="note">Each option strike is plotted by its price change (x) and OI change (y) for the period, with a rolling tail of the last N periods. Quadrant = the signs of the two changes. Runs the real classification and tail logic on synthetic price/OI moves; only the raw moves are fabricated.</div>
     </div>
   </section>
 </main>
@@ -222,14 +223,27 @@ let SEED = 90210;
 function rng(){ SEED|=0; SEED=(SEED+0x6D2B79F5)|0; let t=Math.imul(SEED^(SEED>>>15),1|SEED); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }
 function gauss(){ let u=0,v=0; while(!u)u=rng(); while(!v)v=rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
 
-// F&O names, each biased toward a different quadrant so the board spreads out
-const NAMES = [
-  { sym:"NIFTY",     bx: 1.4, by: 1.1 },
-  { sym:"BANKNIFTY", bx: 1.2, by:-1.3 },
-  { sym:"RELIANCE",  bx:-1.4, by:-0.9 },
-  { sym:"HDFCBANK",  bx:-1.1, by: 1.2 },
-  { sym:"INFY",      bx: 0.4, by: 0.5 },
-];
+// Option contracts (strikes) around ATM, each biased toward a quadrant so the board spreads.
+// bias by quadrant: call buying = Long Buildup, call writing = Short Buildup, etc.
+const UNIVERSE = {
+  "NIFTY 21 Jul": [
+    { sym:"24000 CE", bx: 1.4, by: 1.0 },
+    { sym:"24100 CE", bx:-1.2, by: 1.2 },
+    { sym:"24200 CE", bx:-1.1, by:-1.0 },
+    { sym:"23900 PE", bx: 1.2, by:-1.2 },
+    { sym:"24000 PE", bx:-1.3, by: 0.9 },
+    { sym:"24100 PE", bx: 0.5, by: 0.6 },
+  ],
+  "BANKNIFTY 30 Jul": [
+    { sym:"58000 CE", bx: 1.3, by: 1.1 },
+    { sym:"58500 CE", bx:-1.2, by: 1.0 },
+    { sym:"59000 CE", bx:-1.0, by:-1.1 },
+    { sym:"57500 PE", bx: 1.1, by:-1.3 },
+    { sym:"58000 PE", bx:-1.3, by: 0.8 },
+    { sym:"58500 PE", bx: 0.4, by: 0.5 },
+  ],
+};
+let underlying = "NIFTY 21 Jul", NAMES = UNIVERSE[underlying];
 let tails = {}, tailLen = 5, running = true, timer = null;
 
 function quadrant(px, oi) {
@@ -304,6 +318,7 @@ function reset() {
 }
 function tick() { if (!running) return; step(); render(); }
 
+$("underlying").addEventListener("change", e => { underlying = e.target.value; NAMES = UNIVERSE[underlying]; reset(); });
 $("tail").addEventListener("change", e => { tailLen = +e.target.value; reset(); });
 $("interval").addEventListener("change", reset);
 $("pause").addEventListener("click", e => { running = !running; e.target.textContent = running ? "Pause" : "Play"; });
