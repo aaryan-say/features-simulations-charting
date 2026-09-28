@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drawing Catalog</title>
+<style>
+  :root{
+    --bg:#faf9f6; --surface:#ffffff; --surface-2:#f1efe8;
+    --ink:#1b211d; --ink-muted:#5b655f; --border:#dfddd2;
+    --accent:#1f6f5c; --accent-ink:#0f3f34; --accent-soft:#e6f0ec;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+      --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+      --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+    --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+    --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; font-size:16px; padding:36px 20px 60px; }
+  .wrap{ max-width:920px; margin:0 auto; }
+  a.back{ font-family:ui-monospace,monospace; font-size:12.5px; color:var(--accent); text-decoration:none; }
+  h1{ font-family: Georgia, "Iowan Old Style", serif; font-size:26px; margin:14px 0 4px; }
+  .dek{ color:var(--ink-muted); font-size:14.5px; margin:0 0 20px; max-width:70ch; }
+  h2{ font-family:ui-monospace,monospace; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); margin:26px 0 8px; }
+  h2 .count{ color:var(--accent-ink); }
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+  table{ border-collapse:collapse; width:100%; font-size:13.5px; background:var(--surface); }
+  td{ padding:7px 12px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); white-space:nowrap; }
+  tr:last-child td{ border-bottom:none; }
+  td:last-child{ border-right:none; }
+  td:empty{ background:var(--surface-2); }
+  .foot{ font-size:12.5px; color:var(--ink-muted); margin-top:22px; border-top:1px solid var(--border); padding-top:12px; }
+  .foot p{ margin:4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Chart Copilot PRD</a>
+  <h1>Drawing tool catalog &mdash; v1</h1>
+  <p class="dek">Verified live against Nubra's chart (drawings toolbar, same account/session as the indicator catalog, 28 Sep 2026). 46 of 46 assumed tools confirmed present.</p>
+
+  <h2>Trend tools <span class="count">15/15</span></h2>
+  <div class="table-wrap">
+    <table>
+      <tr><td>Trendline</td><td>Vertical line</td></tr>
+      <tr><td>Arrow</td><td>Crossline</td></tr>
+      <tr><td>Ray</td><td>Parallel channel</td></tr>
+      <tr><td>Info line</td><td>Regression trend</td></tr>
+      <tr><td>Extended line</td><td>Flat top/bottom</td></tr>
+      <tr><td>Trend angle</td><td>Disjoint channel</td></tr>
+      <tr><td>Horizontal line</td><td>Anchored VWAP</td></tr>
+      <tr><td>Horizontal ray</td><td></td></tr>
+    </table>
+  </div>
+
+  <h2>Gann &amp; Fibonacci tools <span class="count">19/19</span></h2>
+  <div class="table-wrap">
+    <table>
+      <tr><td>Fib retracement</td><td>Gann square</td></tr>
+      <tr><td>Trend-based fib extension</td><td>Gann fan</td></tr>
+      <tr><td>Pitchfork</td><td>Fib speed resistance fan</td></tr>
+      <tr><td>Schiff pitchfork</td><td>Trend-based fib time</td></tr>
+      <tr><td>Modified Schiff pitchfork</td><td>Fib circles</td></tr>
+      <tr><td>Inside pitchfork</td><td>Pitchfan</td></tr>
+      <tr><td>Fib channel</td><td>Fib spiral</td></tr>
+      <tr><td>Fib time zone</td><td>Fib speed resistance arcs</td></tr>
+      <tr><td>Gann box</td><td>Fib wedge</td></tr>
+      <tr><td>Gann square fixed</td><td></td></tr>
+    </table>
+  </div>
+
+  <h2>Geometric shapes <span class="count">12/12</span></h2>
+  <div class="table-wrap">
+    <table>
+      <tr><td>Brush</td><td>Curve</td></tr>
+      <tr><td>Highlighter</td><td>Polyline</td></tr>
+      <tr><td>Rectangle</td><td>Triangle</td></tr>
+      <tr><td>Circle</td><td>Rotated rectangle</td></tr>
+      <tr><td>Ellipse</td><td>Arc</td></tr>
+      <tr><td>Path</td><td>Double curve</td></tr>
+    </table>
+  </div>
+
+  <div class="foot">
+    <p>Nubra's toolbar groups a few of these under different flyout buttons than TradingView's own docs do &mdash; <code>Arrow</code> and <code>Anchored VWAP</code> live under Nubra's "Forecasting/Geometric" flyouts, not "Trend tools." Presence verified regardless of which button they sit under.</p>
+    <p>Not included in v1 (separate categories, not verified here): Chart patterns, Predictions/measurement tools, Icons/Stickers/Emojis.</p>
+  </div>
+</div>
+</body>
+</html>

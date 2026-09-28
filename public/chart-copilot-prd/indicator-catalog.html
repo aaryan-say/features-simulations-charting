@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicator Catalog</title>
+<style>
+  :root{
+    --bg:#faf9f6; --surface:#ffffff; --surface-2:#f1efe8;
+    --ink:#1b211d; --ink-muted:#5b655f; --border:#dfddd2;
+    --accent:#1f6f5c; --accent-ink:#0f3f34; --accent-soft:#e6f0ec;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+      --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+      --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+    --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+    --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; font-size:16px; padding:36px 20px 60px; }
+  .wrap{ max-width:920px; margin:0 auto; }
+  a.back{ font-family:ui-monospace,monospace; font-size:12.5px; color:var(--accent); text-decoration:none; }
+  h1{ font-family: Georgia, "Iowan Old Style", serif; font-size:26px; margin:14px 0 4px; }
+  .dek{ color:var(--ink-muted); font-size:14.5px; margin:0 0 20px; max-width:70ch; }
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+  table{ border-collapse:collapse; width:100%; font-size:13.5px; background:var(--surface); }
+  td{ padding:7px 12px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); white-space:nowrap; }
+  tr:last-child td{ border-bottom:none; }
+  td:last-child{ border-right:none; }
+  td:empty{ background:var(--surface-2); }
+  .foot{ font-size:12.5px; color:var(--ink-muted); margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Chart Copilot PRD</a>
+  <h1>Indicator catalog &mdash; v1</h1>
+  <p class="dek">Pulled from Nubra's own chart (Indicators &amp; Strategies dialog, live account, 28 Sep 2026). 102 indicators. This is the v1 supported set &mdash; nothing added, nothing removed.</p>
+
+  <div class="table-wrap">
+    <table>
+      <tr><td>Accelerator Oscillator</td><td>Donchian Channels</td><td>Moving Average</td><td>Stochastic</td></tr>
+      <tr><td>Accumulation/Distribution</td><td>Double EMA</td><td>Moving Average Adaptive</td><td>Stochastic RSI</td></tr>
+      <tr><td>Accumulative Swing Index</td><td>Ease Of Movement</td><td>Moving Average Channel</td><td>SuperTrend</td></tr>
+      <tr><td>Advance/Decline</td><td>Elder's Force Index</td><td>Moving Average Double</td><td>Trend Strength Index</td></tr>
+      <tr><td>Arnaud Legoux Moving Average</td><td>EMA Cross</td><td>Moving Average Exponential</td><td>Triple EMA</td></tr>
+      <tr><td>Aroon</td><td>Envelopes</td><td>Moving Average Hamming</td><td>TRIX</td></tr>
+      <tr><td>Average Directional Index</td><td>Fisher Transform</td><td>Moving Average Multiple</td><td>True Strength Index</td></tr>
+      <tr><td>Average Price</td><td>Guppy Multiple Moving Average</td><td>Moving Average Triple</td><td>Typical Price</td></tr>
+      <tr><td>Average True Range</td><td>Historical Volatility</td><td>Moving Average Weighted</td><td>Ultimate Oscillator</td></tr>
+      <tr><td>Awesome Oscillator</td><td>Hull Moving Average</td><td>Net Volume</td><td>Volatility Close-to-Close</td></tr>
+      <tr><td>Balance of Power</td><td>Ichimoku Cloud</td><td>On Balance Volume</td><td>Volatility Index</td></tr>
+      <tr><td>Bollinger Bands</td><td>Keltner Channels</td><td>Parabolic SAR</td><td>Volatility O-H-L-C</td></tr>
+      <tr><td>Bollinger Bands %B</td><td>Klinger Oscillator</td><td>Pivot Points Standard</td><td>Volatility Zero Trend Close-to-Close</td></tr>
+      <tr><td>Bollinger Bands Width</td><td>Know Sure Thing</td><td>Price Channel</td><td>Volume</td></tr>
+      <tr><td>Chaikin Money Flow</td><td>Least Squares Moving Average</td><td>Price Oscillator</td><td>Volume Oscillator</td></tr>
+      <tr><td>Chaikin Oscillator</td><td>Linear Regression Curve</td><td>Price Volume Trend</td><td>Volume Profile Fixed Range</td></tr>
+      <tr><td>Chaikin Volatility</td><td>Linear Regression Slope</td><td>Rank Correlation Index</td><td>Volume Profile Visible Range</td></tr>
+      <tr><td>Chande Kroll Stop</td><td>MA Cross</td><td>Rate Of Change</td><td>Vortex Indicator</td></tr>
+      <tr><td>Chande Momentum Oscillator</td><td>MA with EMA Cross</td><td>Relative Strength Index</td><td>VWAP</td></tr>
+      <tr><td>Chop Zone</td><td>MACD</td><td>Relative Vigor Index</td><td>VWMA</td></tr>
+      <tr><td>Choppiness Index</td><td>Majority Rule</td><td>Relative Volatility Index</td><td>Williams %R</td></tr>
+      <tr><td>Commodity Channel Index</td><td>Mass Index</td><td>SMI Ergodic Indicator/Oscillator</td><td>Williams Alligator</td></tr>
+      <tr><td>Connors RSI</td><td>McGinley Dynamic</td><td>Smoothed Moving Average</td><td>Williams Fractal</td></tr>
+      <tr><td>Coppock Curve</td><td>Median Price</td><td>Standard Deviation</td><td>Zig Zag</td></tr>
+      <tr><td>Detrended Price Oscillator</td><td>Momentum</td><td>Standard Error</td><td></td></tr>
+      <tr><td>Directional Movement</td><td>Money Flow Index</td><td>Standard Error Bands</td><td></td></tr>
+    </table>
+  </div>
+
+  <p class="foot">Not in Nubra's picker (excluded from v1): 52 Week High/Low, Correlation Coefficient, Correlation - Log, Ratio, Spread.</p>
+</div>
+</body>
+</html>

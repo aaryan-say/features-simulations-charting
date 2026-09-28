@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool Use Cases</title>
+<style>
+  :root{
+    --bg:#faf9f6; --surface:#ffffff; --surface-2:#f1efe8;
+    --ink:#1b211d; --ink-muted:#5b655f; --border:#dfddd2;
+    --accent:#1f6f5c; --accent-ink:#0f3f34; --accent-soft:#e6f0ec;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+      --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+      --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+    --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+    --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; font-size:16px; padding:36px 20px 80px; }
+  .wrap{ max-width:1080px; margin:0 auto; }
+  h1{ font-family: Georgia, "Iowan Old Style", serif; font-size:26px; margin:14px 0 4px; }
+  .dek{ color:var(--ink-muted); font-size:14.5px; margin:0 0 18px; max-width:78ch; }
+  nav.jump{ display:flex; flex-wrap:wrap; gap:10px; margin:0 0 26px; }
+  nav.jump a{ font-family:ui-monospace,monospace; font-size:12px; color:var(--accent-ink); background:var(--accent-soft); padding:5px 10px; border-radius:6px; text-decoration:none; }
+  h2{ font-family:ui-monospace,monospace; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); margin:36px 0 8px; scroll-margin-top:16px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+  table{ border-collapse:collapse; width:100%; font-size:13.5px; background:var(--surface); }
+  th{ text-align:left; font-family:ui-monospace,monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-muted); background:var(--surface-2); padding:8px 12px; border-bottom:1px solid var(--border); }
+  td{ padding:7px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  td.tool{ font-weight:600; background:var(--surface-2); white-space:nowrap; border-right:1px solid var(--border); }
+  td.use{ white-space:nowrap; }
+  td.logic{ color:var(--ink-muted); }
+  tr:last-child td{ border-bottom:none; }
+  .note{ font-size:12px; color:var(--ink-muted); margin:26px 0 0; padding-top:12px; border-top:1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html" style="font-family:ui-monospace,monospace;font-size:12.5px;color:var(--accent);text-decoration:none;">&larr; Chart Copilot PRD</a>
+  <h1>Drawing tool &mdash; trader use cases</h1>
+  <p class="dek">Working reference, not part of the PRD. For each of the 46 verified v1 drawing tools: the distinct things a trader means when they ask for it, and what that implies for anchor-point resolution. Where a tool genuinely has only 2&ndash;3 real variants (mostly the niche Gann tools), it's left at 2&ndash;3 rather than padded to a fixed count.</p>
+
+  <nav class="jump">
+    <a href="#trend">Trend tools (15)</a>
+    <a href="#gann">Gann &amp; Fibonacci (19)</a>
+    <a href="#shapes">Geometric shapes (12)</a>
+  </nav>
+
+  <h2 id="trend">Trend tools</h2>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Tool</th><th>Use case</th><th>Anchor logic</th></tr>
+
+      <tr><td class="tool" rowspan="6">Trendline</td><td class="use">Uptrend line</td><td class="logic">Connect 2+ rising swing lows</td></tr>
+      <tr><td class="use">Downtrend line</td><td class="logic">Connect 2+ falling swing highs</td></tr>
+      <tr><td class="use">Support line</td><td class="logic">Connect recent higher lows (direction-agnostic phrasing)</td></tr>
+      <tr><td class="use">Resistance line</td><td class="logic">Connect recent lower highs</td></tr>
+      <tr><td class="use">Validated trendline</td><td class="logic">Line touching 3+ swing points, not just 2</td></tr>
+      <tr><td class="use">Breakout watch line</td><td class="logic">Most recent 2-point swing structure, extended to current bar</td></tr>
+
+      <tr><td class="tool" rowspan="5">Arrow</td><td class="use">Mark a breakout</td><td class="logic">From the breakout candle to the move's current extent</td></tr>
+      <tr><td class="use">Mark a reversal point</td><td class="logic">Pointing at the identified swing high/low</td></tr>
+      <tr><td class="use">Annotate an event</td><td class="logic">Pointing at a specific user-named date/candle</td></tr>
+      <tr><td class="use">Project a move's direction</td><td class="logic">From a pattern's apex toward the implied target</td></tr>
+      <tr><td class="use">Mark entry/exit</td><td class="logic">At the price+time the user names or the resolved trade point</td></tr>
+
+      <tr><td class="tool" rowspan="5">Ray</td><td class="use">Project a level forward</td><td class="logic">Horizontal-ish ray from a past S/R touch to "infinity"</td></tr>
+      <tr><td class="use">Project a trendline forward</td><td class="logic">Diagonal ray from 2 swing points, open-ended</td></tr>
+      <tr><td class="use">Watch level from today</td><td class="logic">Anchored at today's high/low, extending forward only</td></tr>
+      <tr><td class="use">Level from an event</td><td class="logic">Anchored at a named event date (earnings, gap)</td></tr>
+      <tr><td class="use">Origin-anchored diagonal</td><td class="logic">From a single named point, slope from nearest 2nd point</td></tr>
+
+      <tr><td class="tool" rowspan="5">Info line</td><td class="use">Measure a swing move</td><td class="logic">Between 2 swing points, shows %/points/bars</td></tr>
+      <tr><td class="use">Measure a pullback</td><td class="logic">From swing extreme to the retracement low/high</td></tr>
+      <tr><td class="use">Compare two levels</td><td class="logic">Between two named S/R prices</td></tr>
+      <tr><td class="use">Quantify a rally/decline</td><td class="logic">From leg start to leg end</td></tr>
+      <tr><td class="use">Time elapsed between events</td><td class="logic">Between two dated points, price delta secondary</td></tr>
+
+      <tr><td class="tool" rowspan="4">Extended line</td><td class="use">Long-run trendline, both directions</td><td class="logic">2 points, extended fully both ways across visible history</td></tr>
+      <tr><td class="use">Old level acting as new resistance</td><td class="logic">Past swing low, extended forward through current price</td></tr>
+      <tr><td class="use">Channel median, full width</td><td class="logic">Midpoint of a channel's 2 bounds, extended both ways</td></tr>
+      <tr><td class="use">Support-flip-to-resistance check</td><td class="logic">Same as "old level" but framed as a flip validation</td></tr>
+
+      <tr><td class="tool" rowspan="4">Trend angle</td><td class="use">Measure rally steepness</td><td class="logic">2 points of the current leg, angle read off directly</td></tr>
+      <tr><td class="use">Compare two rallies' momentum</td><td class="logic">Two separate trend-angle lines, angles compared</td></tr>
+      <tr><td class="use">Gann-angle read of current trend</td><td class="logic">From the trend's origin swing point</td></tr>
+      <tr><td class="use">"Too steep to sustain" check</td><td class="logic">Angle magnitude flagged against a threshold</td></tr>
+
+      <tr><td class="tool" rowspan="6">Horizontal line</td><td class="use">Today's high</td><td class="logic">Session-high price of the scoped day</td></tr>
+      <tr><td class="use">Today's low</td><td class="logic">Session-low price of the scoped day</td></tr>
+      <tr><td class="use">Round-number level</td><td class="logic">User-typed literal price, no lookup needed</td></tr>
+      <tr><td class="use">Prior swing high (resistance)</td><td class="logic">Nearest/strongest swing high in lookback range</td></tr>
+      <tr><td class="use">Prior swing low (support)</td><td class="logic">Nearest/strongest swing low in lookback range</td></tr>
+      <tr><td class="use">Named price level</td><td class="logic">User states the exact number directly</td></tr>
+
+      <tr><td class="tool" rowspan="4">Horizontal ray</td><td class="use">Level from where it was set</td><td class="logic">S/R touch point, forward only (not drawn into the past)</td></tr>
+      <tr><td class="use">Breakout level going forward</td><td class="logic">Pattern's breakout price, anchored at breakout bar</td></tr>
+      <tr><td class="use">Entry price forward</td><td class="logic">Anchored at trade execution time</td></tr>
+      <tr><td class="use">Gap-fill level forward</td><td class="logic">Anchored at the gap's date</td></tr>
+
+      <tr><td class="tool" rowspan="5">Vertical line</td><td class="use">Earnings/event date</td><td class="logic">User-named or resolved calendar date</td></tr>
+      <tr><td class="use">Start of a new trend/regime</td><td class="logic">Detected trend-change bar</td></tr>
+      <tr><td class="use">Session boundary marker</td><td class="logic">Market open/close timestamp</td></tr>
+      <tr><td class="use">Scope boundary ("today only")</td><td class="logic">Start-of-day timestamp for the request's date scope</td></tr>
+      <tr><td class="use">Anomaly marker</td><td class="logic">Detected outlier/spike bar</td></tr>
+
+      <tr><td class="tool" rowspan="4">Crossline</td><td class="use">Pin an exact high/low tick</td><td class="logic">Single (time, price) pair, both axes fixed</td></tr>
+      <tr><td class="use">"You are here" reference</td><td class="logic">Current bar's time + price</td></tr>
+      <tr><td class="use">Entry point marker</td><td class="logic">Trade's exact execution (time, price)</td></tr>
+      <tr><td class="use">Confluence marker</td><td class="logic">Where two separately-resolved conditions intersect</td></tr>
+
+      <tr><td class="tool" rowspan="5">Parallel channel</td><td class="use">Uptrend channel</td><td class="logic">Rising support line + parallel projected resistance</td></tr>
+      <tr><td class="use">Downtrend channel</td><td class="logic">Falling resistance line + parallel projected support</td></tr>
+      <tr><td class="use">Range/sideways channel</td><td class="logic">Near-flat parallel bounds over the scoped range</td></tr>
+      <tr><td class="use">Volatility channel</td><td class="logic">Widest recent swing bounds, framed as a channel</td></tr>
+      <tr><td class="use">Today's range as a channel</td><td class="logic">Day's high/low as the two channel bounds</td></tr>
+
+      <tr><td class="tool" rowspan="4">Regression trend</td><td class="use">Statistical trend over a window</td><td class="logic">Linear fit over a named lookback (e.g. "last 3 months")</td></tr>
+      <tr><td class="use">Mean-reversion read</td><td class="logic">Same fit, read via its deviation bands</td></tr>
+      <tr><td class="use">Trend-quality check</td><td class="logic">Same fit, band width as the signal</td></tr>
+      <tr><td class="use">Deviation-from-trend check</td><td class="logic">Current price's distance from the fitted line</td></tr>
+
+      <tr><td class="tool" rowspan="4">Flat top/bottom</td><td class="use">Ascending triangle</td><td class="logic">Flat resistance + rising support line</td></tr>
+      <tr><td class="use">Descending triangle</td><td class="logic">Flat support + falling resistance line</td></tr>
+      <tr><td class="use">Flat resistance ceiling</td><td class="logic">Repeated-touch high, flagged as the flat side</td></tr>
+      <tr><td class="use">Flat support floor</td><td class="logic">Repeated-touch low, flagged as the flat side</td></tr>
+
+      <tr><td class="tool" rowspan="4">Disjoint channel</td><td class="use">Broadening/expanding wedge</td><td class="logic">Two diverging trendlines (support falling, resistance rising, or vice versa)</td></tr>
+      <tr><td class="use">Rising wedge (bearish)</td><td class="logic">Two converging rising trendlines, steeper support</td></tr>
+      <tr><td class="use">Falling wedge (bullish)</td><td class="logic">Two converging falling trendlines, steeper resistance</td></tr>
+      <tr><td class="use">Irregular channel</td><td class="logic">Two independently-fit, non-parallel trendlines</td></tr>
+
+      <tr><td class="tool" rowspan="5">Anchored VWAP</td><td class="use">Session VWAP</td><td class="logic">Anchored at today's session open</td></tr>
+      <tr><td class="use">VWAP since an event</td><td class="logic">Anchored at a named earnings/news date</td></tr>
+      <tr><td class="use">VWAP from a major swing</td><td class="logic">Anchored at the significant swing high/low</td></tr>
+      <tr><td class="use">VWAP since breakout</td><td class="logic">Anchored at the detected breakout bar</td></tr>
+      <tr><td class="use">VWAP from a named date</td><td class="logic">Anchored at whatever date the user states</td></tr>
+    </table>
+  </div>
+
+  <h2 id="gann">Gann &amp; Fibonacci tools</h2>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Tool</th><th>Use case</th><th>Anchor logic</th></tr>
+
+      <tr><td class="tool" rowspan="5">Fib retracement</td><td class="use">Uptrend pullback levels</td><td class="logic">Swing low &rarr; swing high</td></tr>
+      <tr><td class="use">Downtrend bounce levels</td><td class="logic">Swing high &rarr; swing low</td></tr>
+      <tr><td class="use">Today's range retracement</td><td class="logic">Day's low &rarr; day's high (or reverse)</td></tr>
+      <tr><td class="use">Most recent leg's retracement</td><td class="logic">Latest detected impulse move's 2 endpoints</td></tr>
+      <tr><td class="use">Named move's retracement</td><td class="logic">User-specified date range, e.g. "March low to July high"</td></tr>
+
+      <tr><td class="tool" rowspan="4">Trend-based fib extension</td><td class="use">Upside target after breakout</td><td class="logic">3 points: swing low, swing high, pullback low</td></tr>
+      <tr><td class="use">Downside target after breakdown</td><td class="logic">3 points, inverse of above</td></tr>
+      <tr><td class="use">Corrective-wave extension</td><td class="logic">Elliott-style: impulse + correction endpoints</td></tr>
+      <tr><td class="use">Harmonic completion zone</td><td class="logic">Pattern's XA/AB/BC-implied 3rd point</td></tr>
+
+      <tr><td class="tool" rowspan="4">Pitchfork</td><td class="use">Uptrend channel from 3 swings</td><td class="logic">Alternating low-high-low (or high-low-high)</td></tr>
+      <tr><td class="use">Downtrend channel from 3 swings</td><td class="logic">Alternating high-low-high</td></tr>
+      <tr><td class="use">Mean-reversion reference</td><td class="logic">Same 3 points, read via median line only</td></tr>
+      <tr><td class="use">Outer-band target/reversal zone</td><td class="logic">Same 3 points, read via outer parallel</td></tr>
+
+      <tr><td class="tool" rowspan="2">Schiff pitchfork</td><td class="use">Steep-trend channel</td><td class="logic">Same 3 swings, median start shifted to midpoint of first 2</td></tr>
+      <tr><td class="use">Spike-first-point correction</td><td class="logic">Used when point 1 is an extreme wick, not a clean swing</td></tr>
+
+      <tr><td class="tool" rowspan="2">Modified Schiff pitchfork</td><td class="use">Balanced-trend channel</td><td class="logic">Median start between standard and Schiff placement</td></tr>
+      <tr><td class="use">Partial-wick first point</td><td class="logic">Point 1 partly reliable, needs a middle-ground median</td></tr>
+
+      <tr><td class="tool" rowspan="2">Inside pitchfork</td><td class="use">Tighter/conservative channel</td><td class="logic">Median drawn between 2 points instead of from 1</td></tr>
+      <tr><td class="use">Recent-subset trend channel</td><td class="logic">Applied to a smaller, more recent swing set</td></tr>
+
+      <tr><td class="tool" rowspan="3">Fib channel</td><td class="use">Trending pullback zones (banded)</td><td class="logic">Swing low &rarr; swing high, as parallel bands not lines</td></tr>
+      <tr><td class="use">Volatile-trend pullback band</td><td class="logic">Same anchors, wider band read for choppy trends</td></tr>
+      <tr><td class="use">Downtrend bounce zones (banded)</td><td class="logic">Swing high &rarr; swing low, banded</td></tr>
+
+      <tr><td class="tool" rowspan="2">Fib time zone</td><td class="use">Project turning-point dates</td><td class="logic">Vertical lines at fib-ratio intervals from a swing point</td></tr>
+      <tr><td class="use">Cycle timing analysis</td><td class="logic">Same, read as "when's the next likely swing"</td></tr>
+
+      <tr><td class="tool" rowspan="2">Gann box</td><td class="use">Combined price+time target</td><td class="logic">Swing low &rarr; swing high, both axes projected together</td></tr>
+      <tr><td class="use">Symmetry projection from a range</td><td class="logic">Same, read for proportional symmetry</td></tr>
+
+      <tr><td class="tool" rowspan="2">Gann square fixed</td><td class="use">Fixed symmetry grid from a major low</td><td class="logic">Single anchor point, fixed-size overlay</td></tr>
+      <tr><td class="use">Support/resistance grid read</td><td class="logic">Same anchor, grid lines read as S/R</td></tr>
+
+      <tr><td class="tool" rowspan="2">Gann square</td><td class="use">Custom-range Gann grid</td><td class="logic">2 points: swing low &rarr; swing high, sized to the range</td></tr>
+      <tr><td class="use">Gann-angle S/R across a range</td><td class="logic">Same 2 points, angles read as S/R</td></tr>
+
+      <tr><td class="tool" rowspan="3">Gann fan</td><td class="use">Bullish fan from a major low</td><td class="logic">Single anchor at swing low</td></tr>
+      <tr><td class="use">Bearish fan from a major high</td><td class="logic">Single anchor at swing high</td></tr>
+      <tr><td class="use">"Which angle is price riding" read</td><td class="logic">Same anchor, current price checked against fan lines</td></tr>
+
+      <tr><td class="tool" rowspan="2">Fib speed resistance fan</td><td class="use">Diagonal S/R fan on a strong move</td><td class="logic">2 points: move start &rarr; move end</td></tr>
+      <tr><td class="use">Retracement support along the fan</td><td class="logic">Same anchors, read for pullback support/resistance</td></tr>
+
+      <tr><td class="tool" rowspan="2">Trend-based fib time</td><td class="use">Turning-point projection from a real trend leg</td><td class="logic">2 points: trend leg start &rarr; end</td></tr>
+      <tr><td class="use">Time-cycle + price trend combined</td><td class="logic">Same anchors, read for both</td></tr>
+
+      <tr><td class="tool" rowspan="2">Fib circles</td><td class="use">Symmetric reversal zones from a pivot</td><td class="logic">2 points: pivot &rarr; reference point, radii at fib ratios</td></tr>
+      <tr><td class="use">Cyclical rotation read</td><td class="logic">Same anchors, used for longer-cycle analysis</td></tr>
+
+      <tr><td class="tool" rowspan="2">Pitchfan</td><td class="use">Multiple pitchfork variants at once</td><td class="logic">Same 3 anchors as Pitchfork, multiple medians shown</td></tr>
+      <tr><td class="use">"Which variant is price respecting" compare</td><td class="logic">Same anchors, comparative read</td></tr>
+
+      <tr><td class="tool" rowspan="2">Fib spiral</td><td class="use">Long-term rotational cycle visual</td><td class="logic">2 points: major pivot &rarr; reference point</td></tr>
+      <tr><td class="use">Time-price spiral projection</td><td class="logic">Same anchors, rarely used outside cyclical analysis</td></tr>
+
+      <tr><td class="tool" rowspan="2">Fib speed resistance arcs</td><td class="use">Curved S/R accounting for time decay</td><td class="logic">2 points: swing start &rarr; swing end</td></tr>
+      <tr><td class="use">"How much should this retrace by now" read</td><td class="logic">Same anchors, arc position read against elapsed time</td></tr>
+
+      <tr><td class="tool" rowspan="2">Fib wedge</td><td class="use">Converging fib-ratio wedge from a trend start</td><td class="logic">2 points: trend start &rarr; current extent</td></tr>
+      <tr><td class="use">Fib-based squeeze zone</td><td class="logic">Same anchors, wedge convergence point read as the squeeze target</td></tr>
+    </table>
+  </div>
+
+  <h2 id="shapes">Geometric shapes</h2>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Tool</th><th>Use case</th><th>Anchor logic</th></tr>
+
+      <tr><td class="tool" rowspan="3">Brush</td><td class="use">Freehand pattern annotation</td><td class="logic">No fixed anchors &mdash; approximate path only, not resolvable to exact points</td></tr>
+      <tr><td class="use">Sketch an approximate trend</td><td class="logic">Same &mdash; freeform, illustrative only</td></tr>
+      <tr><td class="use">Casual teaching annotation</td><td class="logic">Same &mdash; not a precision tool</td></tr>
+
+      <tr><td class="tool" rowspan="3">Highlighter</td><td class="use">Highlight a zone of interest</td><td class="logic">Loose freehand region, not precise coordinates</td></tr>
+      <tr><td class="use">Emphasize a consolidation area</td><td class="logic">Same, drawn over the detected range loosely</td></tr>
+      <tr><td class="use">Emphasize a support cluster</td><td class="logic">Same, drawn over a cluster of touches</td></tr>
+
+      <tr><td class="tool" rowspan="6">Rectangle</td><td class="use">Consolidation/range zone</td><td class="logic">2 points: range low/start time &rarr; range high/end time</td></tr>
+      <tr><td class="use">Supply zone</td><td class="logic">Swing-high cluster's price band + its time span</td></tr>
+      <tr><td class="use">Demand zone</td><td class="logic">Swing-low cluster's price band + its time span</td></tr>
+      <tr><td class="use">Gap box</td><td class="logic">Gap's price range + the gap bar's time span</td></tr>
+      <tr><td class="use">Today's range as a box</td><td class="logic">Day's low/high + session start/end</td></tr>
+      <tr><td class="use">Pre-breakout base</td><td class="logic">Detected accumulation range before the breakout bar</td></tr>
+
+      <tr><td class="tool" rowspan="3">Circle</td><td class="use">Circle a reversal cluster</td><td class="logic">Bounding box around the identified candle cluster</td></tr>
+      <tr><td class="use">Circle an outlier candle</td><td class="logic">Bounding box around a single detected anomaly bar</td></tr>
+      <tr><td class="use">Loosely mark a S/R zone</td><td class="logic">Bounding box around a price cluster, rounded framing</td></tr>
+
+      <tr><td class="tool" rowspan="3">Ellipse</td><td class="use">Elongated consolidation zone</td><td class="logic">Bounding box wider in time than price, or vice versa</td></tr>
+      <tr><td class="use">Rounded top formation</td><td class="logic">Bounding box around the detected rounding-top swing set</td></tr>
+      <tr><td class="use">Rounded bottom formation</td><td class="logic">Bounding box around the detected rounding-bottom swing set</td></tr>
+
+      <tr><td class="tool" rowspan="3">Path</td><td class="use">Irregular support structure</td><td class="logic">Multiple swing-low points connected in sequence</td></tr>
+      <tr><td class="use">Trace a rounded top/bottom</td><td class="logic">Multiple points along the detected curve's real turning points</td></tr>
+      <tr><td class="use">Multi-leg structure trace</td><td class="logic">Sequential swing points across several legs</td></tr>
+
+      <tr><td class="tool" rowspan="3">Curve</td><td class="use">Rounding bottom / cup formation</td><td class="logic">2+ points fit through the detected rounding structure</td></tr>
+      <tr><td class="use">Rounding top formation</td><td class="logic">Same, inverted</td></tr>
+      <tr><td class="use">Curved S/R a straight line can't capture</td><td class="logic">Points along the curved touch series</td></tr>
+
+      <tr><td class="tool" rowspan="3">Polyline</td><td class="use">Manual Elliott wave count</td><td class="logic">Sequential swing points per the wave count</td></tr>
+      <tr><td class="use">Zig-zag multi-leg structure</td><td class="logic">Sequential swing highs/lows in order</td></tr>
+      <tr><td class="use">Irregular flag/pattern boundary</td><td class="logic">Straight segments through the pattern's real corner points</td></tr>
+
+      <tr><td class="tool" rowspan="4">Triangle</td><td class="use">Symmetrical triangle</td><td class="logic">3 points: converging highs/lows apex</td></tr>
+      <tr><td class="use">Converging wedge (filled)</td><td class="logic">Same 3 points, filled-shape variant of the wedge drawing tool</td></tr>
+      <tr><td class="use">Triangular compression zone</td><td class="logic">3 points bounding the narrowing range before breakout</td></tr>
+      <tr><td class="use">Highlight a chart-pattern textbook shape</td><td class="logic">3 points matching the named pattern's corners</td></tr>
+
+      <tr><td class="tool" rowspan="3">Rotated rectangle</td><td class="use">Trend-aligned zone</td><td class="logic">2 points + rotation matched to the prevailing trendline's slope</td></tr>
+      <tr><td class="use">Tilted S/R zone</td><td class="logic">Same, angle taken from the relevant trendline</td></tr>
+      <tr><td class="use">Channel-aligned highlight</td><td class="logic">Same, aligned to an existing parallel channel's slope</td></tr>
+
+      <tr><td class="tool" rowspan="2">Arc</td><td class="use">Curved resistance/support arc</td><td class="logic">2 points bounding the arc's span</td></tr>
+      <tr><td class="use">Rounded-top boundary highlight</td><td class="logic">Same, matched to a detected rounded top</td></tr>
+
+      <tr><td class="tool" rowspan="2">Double curve</td><td class="use">Top-into-new-base S-transition</td><td class="logic">Points spanning the top's decline into the new base's rise</td></tr>
+      <tr><td class="use">Cup-and-handle style transition</td><td class="logic">Same, matched to the cup's curve then the handle's curve</td></tr>
+    </table>
+  </div>
+
+  <p class="note">Anchor logic here is a first-pass hypothesis per tool, not a spec &mdash; it's the input for designing each tool's resolution-tool function (&sect;2 of the PRD), not a commitment about how that function will actually compute the point.</p>
+</div>
+</body>
+</html>
