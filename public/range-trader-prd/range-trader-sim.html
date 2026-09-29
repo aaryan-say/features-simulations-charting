@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Range Trader Simulation</title>
+<style>
+  :root{
+    --bg:#faf9f6; --surface:#ffffff; --surface-2:#f1efe8;
+    --ink:#1b211d; --ink-muted:#5b655f; --border:#dfddd2;
+    --accent:#1f6f5c; --accent-ink:#0f3f34; --accent-soft:#e6f0ec;
+    --buy:#1e7d4f; --sell:#a13f3f;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+      --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+      --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+      --buy:#4ec486; --sell:#dd8b8b;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+    --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+    --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+    --buy:#4ec486; --sell:#dd8b8b;
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; font-size:14px; padding:20px; }
+  a.back{ font-family:ui-monospace,monospace; font-size:12.5px; color:var(--accent); text-decoration:none; }
+  h1{ font-family: Georgia, serif; font-size:22px; margin:12px 0 4px; }
+  .dek{ color:var(--ink-muted); font-size:13.5px; margin:0 0 16px; max-width:80ch; }
+  .app{ display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .chart-col{ flex:1 1 640px; min-width:0; }
+  .side{ flex:0 0 320px; display:flex; flex-direction:column; gap:12px; }
+  .panel{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+  .panel h2{ font-family:ui-monospace,monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); margin:0 0 10px; }
+
+  .modes{ display:flex; gap:6px; margin-bottom:10px; }
+  .modes button{ flex:1; font-family:ui-monospace,monospace; font-size:12px; padding:7px 8px; border-radius:7px; border:1px solid var(--border); background:var(--surface); color:var(--ink); cursor:pointer; }
+  .modes button.active{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
+
+  .chart-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px; }
+  svg{ width:100%; height:420px; display:block; cursor:crosshair; }
+  .hint{ font-size:12px; color:var(--ink-muted); margin-top:6px; }
+
+  .playbar{ display:flex; gap:6px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .playbar button{ font-family:ui-monospace,monospace; font-size:12px; padding:6px 12px; border-radius:7px; border:1px solid var(--accent); background:var(--surface); color:var(--accent-ink); cursor:pointer; }
+  .playbar button:hover{ background:var(--accent-soft); }
+  .playbar .clock{ font-family:ui-monospace,monospace; font-size:12px; color:var(--ink-muted); margin-left:auto; }
+
+  .line-row{ border:1px solid var(--border); border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+  .line-row:last-child{ margin-bottom:0; }
+  .line-row .lr-head{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .swatch{ width:10px; height:10px; border-radius:50%; flex:none; }
+  .lr-head b{ font-family:ui-monospace,monospace; font-size:12px; flex:1; }
+  .lr-head button{ border:none; background:none; color:var(--ink-muted); cursor:pointer; font-size:13px; }
+  .flags{ display:flex; flex-wrap:wrap; gap:8px 12px; font-size:12px; }
+  .flags label{ display:flex; align-items:center; gap:4px; white-space:nowrap; }
+  .flags input[type="number"]{ width:44px; font-size:12px; padding:1px 4px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--ink); }
+  .flags .buy{ color:var(--buy); } .flags .sell{ color:var(--sell); }
+  .empty{ font-size:12px; color:var(--ink-muted); }
+
+  .addline{ width:100%; margin-top:4px; font-family:ui-monospace,monospace; font-size:12px; padding:7px; border-radius:7px; border:1px dashed var(--accent); background:var(--surface); color:var(--accent-ink); cursor:pointer; }
+
+  .pos-readout{ font-family:ui-monospace,monospace; font-size:15px; margin-bottom:6px; }
+  .pos-readout .buy{ color:var(--buy); font-weight:700; }
+  .pos-readout .sell{ color:var(--sell); font-weight:700; }
+  .pos-readout .flat{ color:var(--ink-muted); }
+
+  .log{ max-height:220px; overflow-y:auto; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .log div{ padding:4px 0; border-bottom:1px solid var(--border); }
+  .log div:last-child{ border-bottom:none; }
+  .log .buy{ color:var(--buy); } .log .sell{ color:var(--sell); }
+  .log .empty{ padding:4px 0; }
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Range Trader PRD</a>
+<h1>Range Trader &mdash; simulation</h1>
+<p class="dek">One line primitive, four independent flags (Buy Entry / Sell Entry / Buy Exit / Sell Exit), each configurable per line. Mode just filters which flags are shown. Lines re-trigger every touch until playback passes their own second anchor point &mdash; then they go dead (greyed).</p>
+
+<div class="app">
+  <div class="chart-col">
+    <div class="modes">
+      <button data-mode="buy" class="active">Buying only</button>
+      <button data-mode="sell">Selling only</button>
+      <button data-mode="both">Both</button>
+    </div>
+    <div class="chart-wrap">
+      <svg id="chart" viewBox="0 0 1000 420"></svg>
+    </div>
+    <p class="hint" id="hint">Click the chart to place a line's 1st point, click again for the 2nd (further right = stays armed longer). Switching mode reloads a fresh preset for that mode.</p>
+    <div class="playbar">
+      <button id="btnPlay">&#9654; Play</button>
+      <button id="btnStep">Step &#9656;</button>
+      <button id="btnReset">&#8635; Reset</button>
+      <span class="clock" id="clock">bar 0 / 0</span>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="panel">
+      <h2>Lines</h2>
+      <div id="lineList"></div>
+      <button class="addline" id="btnAddLine">+ Add line (2 clicks on chart)</button>
+    </div>
+    <div class="panel">
+      <h2>Position</h2>
+      <div class="pos-readout" id="posReadout">Flat</div>
+    </div>
+    <div class="panel">
+      <h2>Event log</h2>
+      <div class="log" id="log"><div class="empty">Press Play to start.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- synthetic price data ----------
+  var N = 90;
+  var data = (function(){
+    var out = []; var seed = 42;
+    function rand(){ seed = (seed*1103515245+12345) & 0x7fffffff; return seed/0x7fffffff; }
+    var prevClose = 145;
+    for (var i=0;i<N;i++){
+      var cycle = Math.sin(i/9)*5;
+      var noise = (rand()-0.5)*1.6;
+      var close = 145 + cycle + noise;
+      var open = prevClose;
+      var high = Math.max(open, close) + rand()*0.8;
+      var low = Math.min(open, close) - rand()*0.8;
+      out.push({t:i, open:open, close:close, high:high, low:low});
+      prevClose = close;
+    }
+    return out;
+  })();
+
+  var minP = Math.min.apply(null, data.map(function(d){return d.low;})) - 2;
+  var maxP = Math.max.apply(null, data.map(function(d){return d.high;})) + 2;
+  var W = 1000, H = 420, padL = 44, padR = 10, padT = 10, padB = 20;
+  function xOf(t){ return padL + (t/(N-1))*(W-padL-padR); }
+  function yOf(p){ return padT + (1 - (p-minP)/(maxP-minP)) * (H-padT-padB); }
+  function tOf(x){ return Math.round(((x-padL)/(W-padL-padR))*(N-1)); }
+  function pOf(y){ return minP + (1 - (y-padT)/(H-padT-padB)) * (maxP-minP); }
+
+  var svg = document.getElementById('chart');
+
+  // ---------- state ----------
+  var mode = 'buy';
+  var lines = [];
+  var lineSeq = 0;
+  var current = 0; // playback bar cursor
+  var playing = false;
+  var playTimer = null;
+  var longQty = 0, shortQty = 0;
+  var longAvg = 0, shortAvg = 0;
+  var colors = ['#3f7fd6','#c98a2c','#8a5fc9','#c9527a','#4a9a9a','#a1752f'];
+
+  function colorFor(i){ return colors[i % colors.length]; }
+
+  function presetFor(m){
+    lines = []; lineSeq = 0;
+    function add(p1t,p1p,p2t,p2p,flags){
+      lineSeq++;
+      lines.push({ id: lineSeq, p1:{t:p1t,price:p1p}, p2:{t:p2t,price:p2p},
+        buyEntry: !!flags.buyEntry, sellEntry: !!flags.sellEntry,
+        buyExit: !!flags.buyExit, sellExit: !!flags.sellExit,
+        buyQty: flags.buyQty||1, sellQty: flags.sellQty||1,
+        color: colorFor(lines.length) });
+    }
+    if (m === 'buy'){
+      add(10,141,75,141,{buyEntry:true, buyQty:6});
+      add(10,137,75,137,{buyExit:true});
+      add(10,149,75,149,{buyExit:true});
+    } else if (m === 'sell'){
+      add(10,149,75,149,{sellEntry:true, sellQty:6});
+      add(10,153,75,153,{sellExit:true});
+      add(10,141,75,141,{sellExit:true});
+    } else {
+      add(10,141,75,141,{buyEntry:true, buyQty:6, sellExit:true});
+      add(10,149,75,149,{sellEntry:true, sellQty:4, buyExit:true});
+    }
+  }
+
+  // ---------- drawing ----------
+  var pendingPoint = null; // when adding a line, holds the first click
+  var addingLine = false;
+
+  function render(){
+    var parts = [];
+    // grid
+    for (var gy=0; gy<=4; gy++){
+      var yy = padT + gy*(H-padT-padB)/4;
+      parts.push('<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="var(--border)" stroke-width="1"/>');
+      var pv = pOf(yy).toFixed(1);
+      parts.push('<text x="4" y="'+(yy+4)+'" font-size="10" fill="var(--ink-muted)" font-family="ui-monospace,monospace">'+pv+'</text>');
+    }
+    // candles up to current
+    for (var i=0;i<=current;i++){
+      var d = data[i];
+      var x = xOf(i);
+      var col = d.close>=d.open ? 'var(--buy)' : 'var(--sell)';
+      parts.push('<line x1="'+x+'" y1="'+yOf(d.high)+'" x2="'+x+'" y2="'+yOf(d.low)+'" stroke="'+col+'" stroke-width="1.2"/>');
+      var yo = yOf(d.open), yc = yOf(d.close);
+      var yTop = Math.min(yo,yc), hgt = Math.max(1,Math.abs(yo-yc));
+      parts.push('<rect x="'+(x-2.4)+'" y="'+yTop+'" width="4.8" height="'+hgt+'" fill="'+col+'"/>');
+    }
+    // future candles, faint
+    for (var j=current+1;j<N;j++){
+      var d2 = data[j]; var x2 = xOf(j);
+      parts.push('<line x1="'+x2+'" y1="'+yOf(d2.high)+'" x2="'+x2+'" y2="'+yOf(d2.low)+'" stroke="var(--border)" stroke-width="1"/>');
+    }
+    // current-time cursor
+    parts.push('<line x1="'+xOf(current)+'" y1="'+padT+'" x2="'+xOf(current)+'" y2="'+(H-padB)+'" stroke="var(--ink-muted)" stroke-width="1" stroke-dasharray="3 3"/>');
+
+    // lines
+    lines.forEach(function(ln){
+      var expired = current > ln.p2.t;
+      var x1 = xOf(ln.p1.t), y1 = yOf(ln.p1.price);
+      var x2 = xOf(ln.p2.t), y2 = yOf(ln.p2.price);
+      var stroke = expired ? 'var(--ink-muted)' : ln.color;
+      var dash = expired ? ' stroke-dasharray="4 3"' : '';
+      parts.push('<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+stroke+'" stroke-width="2"'+dash+' opacity="'+(expired?0.5:1)+'"/>');
+      var lbl = flagLabel(ln);
+      parts.push('<text x="'+(x2+4)+'" y="'+(y2-4)+'" font-size="10.5" fill="'+stroke+'" font-family="ui-monospace,monospace">'+lbl+'</text>');
+      parts.push('<circle cx="'+x1+'" cy="'+y1+'" r="3" fill="'+stroke+'"/>');
+      parts.push('<circle cx="'+x2+'" cy="'+y2+'" r="3" fill="'+stroke+'"/>');
+    });
+
+    if (pendingPoint){
+      parts.push('<circle cx="'+xOf(pendingPoint.t)+'" cy="'+yOf(pendingPoint.price)+'" r="4" fill="none" stroke="var(--accent)" stroke-width="2"/>');
+    }
+
+    svg.innerHTML = parts.join('');
+  }
+
+  function flagLabel(ln){
+    var f = [];
+    if (ln.buyEntry) f.push('B.Entry '+ln.buyQty);
+    if (ln.sellEntry) f.push('S.Entry '+ln.sellQty);
+    if (ln.buyExit) f.push('B.Exit');
+    if (ln.sellExit) f.push('S.Exit');
+    return f.join(' + ') || '(no flags)';
+  }
+
+  // ---------- side panel ----------
+  function renderLineList(){
+    var el = document.getElementById('lineList');
+    if (!lines.length){ el.innerHTML = '<p class="empty">No lines yet.</p>'; return; }
+    var html = lines.map(function(ln, idx){
+      var showBuy = mode === 'buy' || mode === 'both';
+      var showSell = mode === 'sell' || mode === 'both';
+      var rows = '<div class="flags">';
+      if (showBuy) rows += '<label class="buy"><input type="checkbox" data-id="'+ln.id+'" data-flag="buyEntry" '+(ln.buyEntry?'checked':'')+'> Buy Entry</label>';
+      if (showBuy && ln.buyEntry) rows += '<input type="number" min="1" value="'+ln.buyQty+'" data-id="'+ln.id+'" data-qty="buyQty">';
+      if (showSell) rows += '<label class="sell"><input type="checkbox" data-id="'+ln.id+'" data-flag="sellEntry" '+(ln.sellEntry?'checked':'')+'> Sell Entry</label>';
+      if (showSell && ln.sellEntry) rows += '<input type="number" min="1" value="'+ln.sellQty+'" data-id="'+ln.id+'" data-qty="sellQty">';
+      if (showBuy) rows += '<label class="buy"><input type="checkbox" data-id="'+ln.id+'" data-flag="buyExit" '+(ln.buyExit?'checked':'')+'> Buy Exit</label>';
+      if (showSell) rows += '<label class="sell"><input type="checkbox" data-id="'+ln.id+'" data-flag="sellExit" '+(ln.sellExit?'checked':'')+'> Sell Exit</label>';
+      rows += '</div>';
+      return '<div class="line-row"><div class="lr-head"><span class="swatch" style="background:'+ln.color+'"></span><b>Line '+(idx+1)+'</b><button data-del="'+ln.id+'">&times;</button></div>'+rows+'</div>';
+    }).join('');
+    el.innerHTML = html;
+
+    el.querySelectorAll('input[type="checkbox"]').forEach(function(cb){
+      cb.addEventListener('change', function(){
+        var ln = lines.find(function(l){return l.id==cb.dataset.id;});
+        ln[cb.dataset.flag] = cb.checked;
+        render();
+      });
+    });
+    el.querySelectorAll('input[type="number"]').forEach(function(nb){
+      nb.addEventListener('change', function(){
+        var ln = lines.find(function(l){return l.id==nb.dataset.id;});
+        ln[nb.dataset.qty] = Math.max(1, parseInt(nb.value)||1);
+        render();
+      });
+    });
+    el.querySelectorAll('button[data-del]').forEach(function(b){
+      b.addEventListener('click', function(){
+        lines = lines.filter(function(l){return l.id != b.dataset.del;});
+        renderLineList(); render();
+      });
+    });
+  }
+
+  function logEvent(text, cls){
+    var el = document.getElementById('log');
+    if (el.querySelector('.empty')) el.innerHTML = '';
+    var row = document.createElement('div');
+    row.className = cls||'';
+    row.textContent = text;
+    el.insertBefore(row, el.firstChild);
+  }
+
+  function updatePosReadout(){
+    var el = document.getElementById('posReadout');
+    if (longQty>0) el.innerHTML = '<span class="buy">LONG '+longQty+' @ '+longAvg.toFixed(2)+'</span>';
+    else if (shortQty>0) el.innerHTML = '<span class="sell">SHORT '+shortQty+' @ '+shortAvg.toFixed(2)+'</span>';
+    else el.innerHTML = '<span class="flat">Flat</span>';
+  }
+
+  // ---------- trigger engine ----------
+  function lineValueAt(ln, t){
+    if (ln.p2.t === ln.p1.t) return ln.p1.price;
+    var ratio = (t - ln.p1.t) / (ln.p2.t - ln.p1.t);
+    return ln.p1.price + ratio * (ln.p2.price - ln.p1.price);
+  }
+
+  function processBar(bar){
+    lines.forEach(function(ln){
+      if (bar.t < ln.p1.t || bar.t > ln.p2.t) return; // not active yet, or expired
+      var val = lineValueAt(ln, bar.t);
+      var touched = val >= bar.low && val <= bar.high;
+      if (!touched) return;
+
+      // exits first
+      if (ln.buyExit && longQty > 0){
+        logEvent('bar '+bar.t+'  Buy Exit  '+longQty+' @ '+val.toFixed(2), 'buy');
+        longQty = 0; longAvg = 0;
+      }
+      if (ln.sellExit && shortQty > 0){
+        logEvent('bar '+bar.t+'  Sell Exit  '+shortQty+' @ '+val.toFixed(2), 'sell');
+        shortQty = 0; shortAvg = 0;
+      }
+      // then entries (only if now flat on that side)
+      if (ln.buyEntry && longQty === 0 && shortQty === 0){
+        longQty = ln.buyQty; longAvg = val;
+        logEvent('bar '+bar.t+'  Buy Entry  '+longQty+' @ '+val.toFixed(2), 'buy');
+      }
+      if (ln.sellEntry && shortQty === 0 && longQty === 0){
+        shortQty = ln.sellQty; shortAvg = val;
+        logEvent('bar '+bar.t+'  Sell Entry  '+shortQty+' @ '+val.toFixed(2), 'sell');
+      }
+    });
+    updatePosReadout();
+  }
+
+  function stepForward(){
+    if (current >= N-1) { pause(); return; }
+    current++;
+    processBar(data[current]);
+    document.getElementById('clock').textContent = 'bar '+current+' / '+(N-1);
+    render();
+  }
+
+  function play(){
+    if (playing) return;
+    playing = true;
+    document.getElementById('btnPlay').textContent = '⏸ Pause';
+    playTimer = setInterval(function(){
+      stepForward();
+      if (current >= N-1) pause();
+    }, 220);
+  }
+  function pause(){
+    playing = false;
+    document.getElementById('btnPlay').textContent = '▶ Play';
+    clearInterval(playTimer);
+  }
+  function reset(){
+    pause();
+    current = 0;
+    longQty = 0; shortQty = 0; longAvg = 0; shortAvg = 0;
+    document.getElementById('log').innerHTML = '<div class="empty">Press Play to start.</div>';
+    document.getElementById('clock').textContent = 'bar 0 / '+(N-1);
+    updatePosReadout();
+    render();
+  }
+
+  // ---------- events ----------
+  document.getElementById('btnPlay').addEventListener('click', function(){ playing ? pause() : play(); });
+  document.getElementById('btnStep').addEventListener('click', function(){ pause(); stepForward(); });
+  document.getElementById('btnReset').addEventListener('click', reset);
+
+  document.querySelectorAll('.modes button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.modes button').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      presetFor(mode);
+      reset();
+      renderLineList();
+    });
+  });
+
+  document.getElementById('btnAddLine').addEventListener('click', function(){
+    addingLine = true; pendingPoint = null;
+    document.getElementById('hint').textContent = 'Click the chart for the line\'s 1st point.';
+  });
+
+  svg.addEventListener('click', function(e){
+    if (!addingLine) return;
+    var rect = svg.getBoundingClientRect();
+    var x = (e.clientX - rect.left) * (W/rect.width);
+    var y = (e.clientY - rect.top) * (H/rect.height);
+    var t = Math.max(0, Math.min(N-1, tOf(x)));
+    var p = pOf(y);
+    if (!pendingPoint){
+      pendingPoint = {t:t, price:p};
+      document.getElementById('hint').textContent = 'Click for the 2nd point (further right = stays armed longer).';
+      render();
+    } else {
+      var p2 = {t: t===pendingPoint.t ? t+1 : t, price:p};
+      lineSeq++;
+      lines.push({ id:lineSeq, p1:pendingPoint, p2:p2,
+        buyEntry:false, sellEntry:false, buyExit:false, sellExit:false,
+        buyQty:1, sellQty:1, color: colorFor(lines.length) });
+      pendingPoint = null; addingLine = false;
+      document.getElementById('hint').textContent = 'Click the chart to place a line\'s 1st point, click again for the 2nd (further right = stays armed longer).';
+      renderLineList(); render();
+    }
+  });
+
+  // ---------- init ----------
+  presetFor(mode);
+  reset();
+  renderLineList();
+})();
+</script>
+</body>
+</html>
