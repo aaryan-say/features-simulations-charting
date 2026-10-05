@@ -196,6 +196,34 @@
   }
   #tip-layer.visible{ opacity:1; transform:translateY(0); }
 
+  /* ---------- hero (pitch) ---------- */
+  .hero{ max-width:1180px; margin:0 auto; padding:34px 0 40px; border-bottom:1px solid var(--border); }
+  .hero-pitch{ font-size:19px; line-height:1.55; max-width:70ch; margin:0 0 22px; color:var(--ink); }
+  .hero-pitch strong{ color:var(--accent-ink); }
+  .cta-row{ display:flex; flex-wrap:wrap; gap:12px; margin:0 0 30px; }
+  .cta-btn{
+    display:inline-flex; align-items:center; gap:8px; text-decoration:none;
+    font-size:14.5px; font-weight:600; padding:12px 20px; border-radius:9px;
+    border:1px solid transparent; transition:transform .08s ease, box-shadow .08s ease;
+  }
+  .cta-btn:hover{ transform:translateY(-1px); }
+  .cta-btn.primary{ background:var(--accent); color:var(--surface); box-shadow:var(--shadow); }
+  .cta-btn.primary:hover{ box-shadow:0 4px 14px -4px color-mix(in srgb, var(--accent) 60%, transparent); }
+  .cta-btn.secondary{ background:var(--surface); color:var(--ink); border-color:var(--border); }
+  .cta-btn .arrow{ font-family:ui-monospace,monospace; }
+
+  .compare-grid{ display:grid; grid-template-columns:1fr auto 1fr; gap:0; align-items:stretch; margin:0 0 8px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface); }
+  @media (max-width:760px){ .compare-grid{ grid-template-columns:1fr; } .compare-grid .compare-vs{ padding:4px 0; } }
+  .compare-col{ padding:20px 22px; }
+  .compare-col.after{ background:var(--accent-soft); }
+  .compare-col h4{ font-family:ui-monospace,monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); margin:0 0 14px; }
+  .compare-col.after h4{ color:var(--accent-ink); }
+  .compare-steps{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .compare-steps li{ display:flex; align-items:center; gap:10px; font-size:14.5px; margin:0; }
+  .compare-steps .dot{ flex:none; width:8px; height:8px; border-radius:50%; background:var(--ink-muted); }
+  .compare-col.after .compare-steps .dot{ background:var(--accent); }
+  .compare-vs{ display:flex; align-items:center; justify-content:center; padding:0 18px; color:var(--ink-muted); font-family:ui-monospace,monospace; font-size:12px; }
+
   footer{
     max-width:1180px; margin:0 auto; padding:32px 0 50px; border-top:1px solid var(--border);
     font-size:13px; color:var(--ink-muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
@@ -214,6 +242,33 @@
     <div>Date<strong>05 Oct 2026</strong></div>
     <div>Owner<strong>Aryan A.</strong></div>
     <div>Related product<strong>Nubra Cloud (existing)</strong></div>
+  </div>
+</div>
+
+<div class="hero">
+  <p class="hero-pitch">Users already trade manually off indicators on their charts — watching for a condition, then placing the order by hand. This turns that same strategy into one that <strong>runs itself</strong> on Nubra Cloud: no code to write, a plain-language summary to approve, and a chart-based backtest showing exactly where it would have fired historically — before a single real order goes out.</p>
+  <div class="cta-row">
+    <a class="cta-btn primary" href="../algo-strategy-simulation/" target="_blank" rel="noopener">Try the interactive simulation <span class="arrow">→</span></a>
+    <a class="cta-btn secondary" href="#s4">See how it works <span class="arrow">↓</span></a>
+  </div>
+  <div class="compare-grid">
+    <div class="compare-col">
+      <h4>Today — manual</h4>
+      <ul class="compare-steps">
+        <li><span class="dot"></span>Watch the chart for a condition</li>
+        <li><span class="dot"></span>Recognize the entry/exit by eye</li>
+        <li><span class="dot"></span>Place the order by hand, every time</li>
+      </ul>
+    </div>
+    <div class="compare-vs">→</div>
+    <div class="compare-col after">
+      <h4>With this feature</h4>
+      <ul class="compare-steps">
+        <li><span class="dot"></span>Answer a few guided questions</li>
+        <li><span class="dot"></span>Review a plain-language summary + backtest chart</li>
+        <li><span class="dot"></span>Confirm once — it runs itself on Nubra Cloud</li>
+      </ul>
+    </div>
   </div>
 </div>
 
@@ -351,11 +406,11 @@
           <text class="title" x="622" y="120">Generate</text>
           <text class="caption" x="622" y="134">→ Python</text>
         </g>
-        <g class="diagram-node" tabindex="0" data-tip="A plain-language summary built from the Strategy Spec — never the raw code. States what's tracked, entry/exit conditions, stop loss/target, quantity, and warns explicitly that confirming lets the strategy place real orders. The comment box is the only edit mechanism — feedback loops back into Generate." aria-label="Step 5, Review">
+        <g class="diagram-node" tabindex="0" data-tip="A plain-language summary built from the Strategy Spec, PLUS a chart backtest preview — the configured indicator plotted on real price history with markers showing exactly where this strategy would have entered and exited. Never the raw code. The comment box is the only edit mechanism — feedback loops back into Generate." aria-label="Step 5, Review">
           <circle cx="806" cy="80" r="24"></circle>
           <text class="num" x="806" y="85">5</text>
           <text class="title" x="806" y="120">Review</text>
-          <text class="caption" x="806" y="134">plain-language</text>
+          <text class="caption" x="806" y="134">summary + backtest</text>
         </g>
         <g class="diagram-node" tabindex="0" data-tip="The confirmed strategy and generated code are handed to Nubra Cloud's existing deployment interface. This flow's scope ends at a successful handoff — Nubra Cloud takes over execution, monitoring, and lifecycle management from here." aria-label="Step 6, Deploy">
           <circle cx="990" cy="80" r="24"></circle>
@@ -372,8 +427,8 @@
           <tr><td>1</td><td>Nudge</td><td>Fires on indicator-apply, or for a flagged regular trader (trade frequency + existing chart indicators). Toast at the moment + a standing panel entry.</td></tr>
           <tr><td>2</td><td>Card Flow</td><td>First card picks single- vs. multi-leg; fixed questions follow, repeating per leg. Pre-fills from indicators already on the chart.</td></tr>
           <tr><td>3</td><td>MCQ Loop</td><td>Remaining gaps become AI-generated MCQs (+ "Other"). No progress UI shown. A contradiction surfaces as another question here, not a block.</td></tr>
-          <tr><td>4</td><td>Generate</td><td>Strategy Spec → Python matching Nubra Cloud's contract. <span class="tag open">Exact contract — §14</span> Rolling-average timer shown.</td></tr>
-          <tr><td>5</td><td>Review</td><td>Plain-language summary only, never code. Comment box is the only edit path — feedback loops back into Generate.</td></tr>
+          <tr><td>4</td><td>Generate</td><td>Strategy Spec → Python matching Nubra Cloud's contract, plus a chart backtest preview run against recent history. <span class="tag open">Exact contract — §14</span> Rolling-average timer shown.</td></tr>
+          <tr><td>5</td><td>Review</td><td>Plain-language summary <em>and</em> a chart with the indicator plotted + entry/exit markers from the backtest preview — never code. Comment box is the only edit path — feedback loops back into Generate.</td></tr>
           <tr><td>6</td><td>Deploy</td><td>Handoff to Nubra Cloud. Scope ends here — no status link-back into this flow.</td></tr>
         </tbody>
       </table>
@@ -385,7 +440,7 @@
     <h2>Architecture</h2>
     <p class="lede">The authoring experience sits entirely in front of Nubra Cloud, reached once, at Deploy.</p>
     <div class="diagram-wrap">
-      <svg viewBox="0 0 1120 420" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 1120 460" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <marker id="aa-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-muted)"></path>
@@ -399,7 +454,7 @@
         <g class="diagram-box" tabindex="0" data-tip="The entry point: a user's chart, plus the nudge prompt that starts strategy creation. See step 1 in §4." aria-label="Chart and Nudge"><rect x="20" y="34" width="150" height="66" rx="8"></rect><text x="35" y="60">Chart +</text><text x="35" y="76">Nudge</text></g>
         <g class="diagram-box" tabindex="0" data-tip="Stage 1 of capture — fixed, predefined questions, one per card, including the leg-count question and per-leg repeats for multi-leg strategies." aria-label="Guided Card Flow"><rect x="205" y="34" width="170" height="66" rx="8"></rect><text x="220" y="56">Guided Card</text><text x="220" y="72">Flow</text><text x="220" y="88" class="lbl-muted">fixed questions</text></g>
         <g class="diagram-box" tabindex="0" data-tip="Stage 2 of capture — AI-generated multiple-choice questions (+ 'Other') targeting whatever the Completeness Checker still finds missing, including contradiction-resolution questions." aria-label="Adaptive MCQ Loop"><rect x="410" y="34" width="190" height="66" rx="8"></rect><text x="425" y="56">Adaptive MCQ</text><text x="425" y="72">Loop</text><text x="425" y="88" class="lbl-muted">AI-generated + other</text></g>
-        <g class="diagram-box" tabindex="0" data-tip="Plain-language summary of the Strategy Spec, with a comment box as the only way to request changes — looping back into the Code Generator via the dashed feedback edge." aria-label="Review and Confirmation"><rect x="635" y="34" width="210" height="66" rx="8"></rect><text x="650" y="56">Review &amp;</text><text x="650" y="72">Confirmation</text><text x="650" y="88" class="lbl-muted">plain-language summary</text></g>
+        <g class="diagram-box" tabindex="0" data-tip="Plain-language summary of the Strategy Spec PLUS the chart backtest preview (indicator plotted with historical entry/exit markers) — with a comment box as the only way to request changes, looping back into the Code Generator via the dashed feedback edge." aria-label="Review and Confirmation"><rect x="635" y="34" width="210" height="66" rx="8"></rect><text x="650" y="56">Review &amp;</text><text x="650" y="72">Confirmation</text><text x="650" y="88" class="lbl-muted">summary + backtest chart</text></g>
         <g class="diagram-box" tabindex="0" data-tip="Final confirmation before handoff to Nubra Cloud — this is where this flow's responsibility ends." aria-label="Deploy"><rect x="880" y="34" width="120" height="66" rx="8"></rect><text x="900" y="60">Deploy</text><text x="895" y="76" class="lbl-muted">confirmed</text></g>
 
         <path class="diagram-edge" marker-end="url(#aa-arrow)" d="M170,67 L205,67"></path>
@@ -432,11 +487,17 @@
         <text x="890" y="178" class="diagram-group-label">External</text>
         <g class="diagram-box ext" tabindex="0" data-tip="Existing Nubra infrastructure that actually runs the generated Python code. Treated as an external system here — reached exactly once, at Deploy — and owns monitoring and lifecycle management from that point on." aria-label="Nubra Cloud"><rect x="900" y="188" width="195" height="100" rx="10"></rect><text x="915" y="220">Nubra Cloud</text><text x="915" y="238" class="lbl-muted">existing infra</text><text x="915" y="254" class="lbl-muted">runs Python code</text><text x="915" y="272" class="lbl-muted">owns monitoring</text></g>
         <path class="diagram-edge" marker-end="url(#aa-arrow)" d="M940,100 L997,100 L997,188"></path>
+
+        <path class="diagram-edge" marker-end="url(#aa-arrow)" d="M300,318 L300,345"></path>
+        <g class="diagram-box engine" tabindex="0" data-tip="Runs the completed Strategy Spec's entry/exit conditions against recent historical price data and produces the chart markers shown in Review — proof of what the strategy would have done. Not a full statistical backtest in v1 — no win-rate/avg-return numbers, just the chart. See §14." aria-label="Backtest Engine"><rect x="210" y="345" width="220" height="52" rx="7"></rect><text x="225" y="367">Backtest</text><text x="225" y="383">Engine</text></g>
+        <path class="diagram-edge" marker-end="url(#aa-arrow)" d="M430,355 C 600,355 680,300 740,104"></path>
+        <text x="560" y="398" class="diagram-edge-label">chart + markers → Review</text>
       </svg>
     </div>
     <ul>
       <li>Both capture stages write into the same Strategy Spec via the Completeness Checker.</li>
       <li>Review's comment box is the only way back into the Code Generator — the dashed edge.</li>
+      <li>The Backtest Engine reads the same Strategy Spec and feeds its chart straight into Review — a visual, not a statistical backtest. <span class="tag open">v1 scope — §14</span></li>
       <li>Nubra Cloud is reached exactly once, at Deploy. <span class="tag open">Exact handoff contract — §14</span></li>
     </ul>
   </section>
@@ -452,7 +513,7 @@
           <tr><td>Guided Card Flow</td><td>One question/card, large tap targets. First card: leg count — multi-leg repeats the set with an "add another leg" step. Pre-fills from the chart's live indicators. Progress = fields captured vs. needed, per-leg and overall.</td></tr>
           <tr><td>Adaptive MCQ Loop</td><td>Same card shell as above, so it reads as one continuous flow. Every MCQ has an "Other" free-text option. No round counter. A contradiction becomes the next question, in-context (e.g. "stop loss is above entry — which did you mean?").</td></tr>
           <tr><td>Code generation</td><td>Single wait screen, rolling-average timer. No cancel affordance.</td></tr>
-          <tr><td>Review &amp; confirmation</td><td>Plain-language summary only — never code. Explicit real-money warning. Comment box is the <em>only</em> edit mechanism; feedback re-triggers this same screen with a new summary.</td></tr>
+          <tr><td>Review &amp; confirmation</td><td>Plain-language summary <em>and</em> a chart backtest preview — the configured indicator plotted on recent price history with markers at every bar the strategy would have entered/exited. Never code. Explicit real-money warning. Comment box is the <em>only</em> edit mechanism; feedback re-triggers this same screen with a new summary and a re-run preview.</td></tr>
           <tr><td>Deploy confirmation</td><td>Success state confirming handoff; outbound courtesy link to Nubra Cloud's own monitoring surface.</td></tr>
         </tbody>
       </table>
@@ -472,6 +533,7 @@
           <tr><td><code>CompletenessIndicator</code></td><td>Drives the progress UI from background completeness state</td></tr>
           <tr><td><code>GenerationTimer</code></td><td>Rolling-average estimate, polls generation status</td></tr>
           <tr><td><code>ReviewSummary</code> / <code>FeedbackCommentBox</code></td><td>Plain-language summary + the only edit path</td></tr>
+          <tr><td><code>BacktestPreviewChart</code></td><td>Price chart with the configured indicator + historical entry/exit markers, rendered on Review</td></tr>
           <tr><td><code>DeployConfirmation</code></td><td>Success state + outbound Nubra Cloud link</td></tr>
         </tbody>
       </table>
@@ -494,12 +556,14 @@
           <tr><td>MCQ Generator</td><td>Next targeted question from the gap list, or a contradiction-resolution question. <span class="tag open">Gap prioritization — §14</span></td></tr>
           <tr><td>Code Generator</td><td>Strategy Spec → Python, composing all legs into one strategy. <span class="tag open">Leg-combination semantics — §14</span></td></tr>
           <tr><td>Feedback Interpreter</td><td>Review comment → Strategy Spec diff → regenerate, version increments.</td></tr>
+          <tr><td>Backtest Engine</td><td>Strategy Spec + recent historical price data → entry/exit markers for the chart shown on Review. Re-runs whenever the spec changes via feedback. <span class="tag open">Lookback window length, instrument-availability edge cases — §14</span></td></tr>
         </tbody>
       </table>
     </div>
     <ul>
       <li><strong>Round cap:</strong> 8 rounds (§12); past it, remaining gaps become Review callouts instead of blocking further.</li>
       <li><strong>Contradictions:</strong> resolved as another MCQ-style question — mid-flow during capture, or as a follow-up before regenerating if raised via Review feedback.</li>
+      <li><strong>Backtest preview:</strong> visual only in v1 — entry/exit markers on a chart, not a statistical backtest (no win-rate, avg-return, or drawdown numbers). <span class="tag open">Whether to add those numbers later — §14</span></li>
       <li><strong>Nubra Cloud handoff:</strong> code + Strategy Spec metadata handed off; treated as an external system at interface level. <span class="tag open">Exact contract, auth, status handling — §14</span></li>
       <li><strong>Persistence:</strong> every answer/feedback round written immediately, not batched.</li>
     </ul>
@@ -508,7 +572,7 @@
   <section id="s9">
     <span class="sec-num">§9</span>
     <h2>Data model</h2>
-    <p class="lede">Eight entities. <code>StrategySpec</code> is versioned and holds <code>legs[]</code> — length 1 for single-leg.</p>
+    <p class="lede">Nine entities. <code>StrategySpec</code> is versioned and holds <code>legs[]</code> — length 1 for single-leg.</p>
     <div class="diagram-wrap">
       <svg viewBox="0 0 1060 400" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -531,20 +595,23 @@
         <g class="diagram-box" tabindex="0" data-tip="One row per comment submitted at Review: which spec version it was against, the free-text comment, and which new version it produced." aria-label="ReviewFeedback"><rect x="230" y="246" width="190" height="46" rx="7"></rect><text x="245" y="274">ReviewFeedback</text></g>
         <g class="diagram-box" tabindex="0" data-tip="Created on a successful Deploy — the external Nubra Cloud reference and the handoff status." aria-label="DeployedStrategy"><rect x="230" y="322" width="190" height="46" rx="7"></rect><text x="245" y="350">DeployedStrategy</text></g>
 
-        <path class="diagram-edge" marker-end="url(#ae-arrow)" d="M420,189 L560,150"></path>
-        <path class="diagram-edge" marker-end="url(#ae-arrow)" d="M420,194 L560,225"></path>
-        <text x="490" y="170" class="diagram-edge-label">legs[]</text>
-        <text x="490" y="235" class="diagram-edge-label">versions</text>
+        <path class="diagram-edge" marker-end="url(#ae-arrow)" d="M420,186 L560,150"></path>
+        <path class="diagram-edge" marker-end="url(#ae-arrow)" d="M420,192 L560,225"></path>
+        <path class="diagram-edge" marker-end="url(#ae-arrow)" d="M420,198 L560,296"></path>
+        <text x="490" y="165" class="diagram-edge-label">legs[]</text>
+        <text x="490" y="232" class="diagram-edge-label">versions</text>
+        <text x="490" y="280" class="diagram-edge-label">backtest</text>
 
         <g class="diagram-box" tabindex="0" data-tip="One instrument within the strategy — equity, future, or option — with its own entry/exit conditions, stop loss, target, and sizing. A single-leg strategy has exactly one." aria-label="Leg"><rect x="560" y="126" width="170" height="46" rx="7"></rect><text x="575" y="154">Leg</text></g>
         <g class="diagram-box store" tabindex="0" data-tip="One row per generated code version: the actual Python text, tied to a specific StrategySpec version, plus how long generation took — feeds the rolling-average timer." aria-label="GeneratedCode"><rect x="560" y="202" width="170" height="46" rx="7"></rect><text x="575" y="230">GeneratedCode</text></g>
+        <g class="diagram-box store" tabindex="0" data-tip="One row per backtest preview run: the entry/exit marker list (bar index, direction, price) shown on Review's chart, tied to a specific StrategySpec version. Re-generated whenever feedback produces a new version." aria-label="BacktestPreview"><rect x="560" y="270" width="170" height="46" rx="7"></rect><text x="575" y="298">BacktestPreview</text></g>
 
         <path class="diagram-edge" marker-end="url(#ae-arrow)" d="M730,149 L860,149"></path>
         <text x="795" y="139" class="diagram-edge-label">conditions</text>
         <g class="diagram-box" tabindex="0" data-tip="A single entry or exit rule nested under a Leg: a field, an operator (comparison, crossover, or range), and a value." aria-label="Condition"><rect x="860" y="126" width="180" height="46" rx="7"></rect><text x="875" y="154">Condition</text></g>
       </svg>
     </div>
-    <div class="note">Every arrow is "one has many." <code>Leg</code> and <code>Condition</code> are new in v1.2 to carry multi-leg/options strategies; <code>leg_combination</code> (synced vs. independent leg timing, net vs. per-leg stop/target) is still open — §14.</div>
+    <div class="note">Every arrow is "one has many." <code>Leg</code> and <code>Condition</code> carry multi-leg/options strategies; <code>leg_combination</code> (synced vs. independent leg timing, net vs. per-leg stop/target) is still open — §14. <code>BacktestPreview</code> is new for the chart backtest step — visual markers only, not statistical metrics, in v1.</div>
 
     <div class="schema-block"><pre><span class="entity">Draft</span>
   id, user_id         <span class="type">uuid</span>
@@ -596,6 +663,13 @@
   code                    <span class="type">text</span>   <span class="cm">-- Python, Nubra Cloud contract</span>
   generated_at, generation_duration_ms   <span class="type">timestamp, int</span>
 
+<span class="entity">BacktestPreview</span>
+  id, draft_id (fk)       <span class="type">uuid</span>
+  strategy_spec_version   <span class="type">int</span>
+  lookback_window         <span class="type">{bars, timeframe}</span>   <span class="cm">-- default TBD, §14</span>
+  markers                 <span class="type">{bar_index, leg_id, direction, price}[]</span>   <span class="cm">-- rendered on BacktestPreviewChart</span>
+  computed_at             <span class="type">timestamp</span>
+
 <span class="entity">ReviewFeedback</span>
   id, draft_id (fk)       <span class="type">uuid</span>
   against_spec_version, resulting_spec_version   <span class="type">int</span>
@@ -622,6 +696,7 @@
           <tr><td><code>GET .../completeness</code></td><td>Poll completeness state</td></tr>
           <tr><td><code>POST .../generate</code></td><td>Trigger code generation (requires complete or capped)</td></tr>
           <tr><td><code>GET .../generation-status</code></td><td>Poll generation status</td></tr>
+          <tr><td><code>GET .../backtest-preview</code></td><td>Fetch chart markers for the current spec version (§9)</td></tr>
           <tr><td><code>POST .../feedback</code></td><td>Review feedback → new spec version → regenerate</td></tr>
           <tr><td><code>POST .../deploy</code></td><td>Confirm &amp; hand off to Nubra Cloud</td></tr>
           <tr><td><code>[external]</code> Nubra Cloud deploy API</td><td><span class="tag open">Contract TBD — §14</span></td></tr>
@@ -644,6 +719,8 @@
           <tr><td>Two legs conflict</td><td>Same mechanism — a clarifying question naming both legs</td></tr>
           <tr><td>Strategy shape unsupported by Nubra Cloud</td><td>Must be caught before Review <span class="tag open">§14</span></td></tr>
           <tr><td>Feedback contradicts earlier answers</td><td>Treated as an update — spec version increments</td></tr>
+          <tr><td>No historical signals in the lookback window</td><td>Chart still renders with the indicator plotted; explicit "no matches in this window" state, not an error</td></tr>
+          <tr><td>Instrument lacks enough historical data for a preview</td><td>Backtest chart step is skipped with an explicit note; Review still shows the plain-language summary <span class="tag open">§14</span></td></tr>
           <tr><td>Repeated nudge dismissal</td><td>No suppression needed — tied to each new indicator applied</td></tr>
         </tbody>
       </table>
@@ -684,7 +761,7 @@
   <section id="s14">
     <span class="sec-num">§14</span>
     <h2>Open questions &amp; risks</h2>
-    <p class="lede">Ten items closed across v1.1/v1.2 (§0). Four remain.</p>
+    <p class="lede">Ten items closed across v1.1/v1.2 (§0). Five remain.</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>#</th><th>Question</th><th>Why it matters</th></tr></thead>
@@ -692,7 +769,8 @@
           <tr><td>1</td><td>Nubra Cloud deploy API contract, auth, status handling</td><td>Blocks §8, §10 real implementation — pending that team</td></tr>
           <tr><td>2</td><td>Multi-leg combination semantics — synced vs. independent, net vs. per-leg stop/target</td><td>Affects Code Generator and <code>leg_combination</code> (§9)</td></tr>
           <tr><td>3</td><td>MCQ gap-prioritization logic</td><td>Affects how coherent the loop feels across legs</td></tr>
-          <tr><td>4</td><td>Regulatory/compliance review (SEBI algo-trading)</td><td>Descoped this draft — pre-launch dependency (§15)</td></tr>
+          <tr><td>4</td><td>Backtest preview lookback window, and whether to add win-rate/avg-return numbers beyond the chart markers</td><td>Affects Backtest Engine (§8) and trust in what Review shows before real money is at risk</td></tr>
+          <tr><td>5</td><td>Regulatory/compliance review (SEBI algo-trading)</td><td>Descoped this draft — pre-launch dependency (§15)</td></tr>
         </tbody>
       </table>
     </div>
@@ -706,7 +784,7 @@
       <li>Live monitoring, pause/stop, lifecycle UI — Nubra Cloud's existing surface</li>
       <li>Exotic/custom option payoffs beyond standard multi-leg structures</li>
       <li>Regulatory/compliance build-out — pre-launch dependency, not solved here</li>
-      <li>Backtesting-before-deploy integration</li>
+      <li>Statistical backtest metrics (win-rate, avg-return, drawdown) beyond the chart preview's visual markers — v1 is proof-by-chart, not a performance report</li>
       <li>Cancel-mid-generation affordance</li>
     </ul>
     <hr class="rule">

@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicator-Based Algo Strategy — Interactive Simulation</title>
+<style>
+  :root{
+    --bg:#faf9f6; --surface:#ffffff; --surface-2:#f1efe8;
+    --ink:#1b211d; --ink-muted:#5b655f; --border:#dfddd2;
+    --accent:#1f6f5c; --accent-ink:#0f3f34; --accent-soft:#e6f0ec;
+    --pos:#1e7d4f; --pos-soft:#e7f4ec;
+    --warn:#9a5b14; --warn-soft:#fbf0df;
+    --oos:#a23b3b; --oos-soft:#f6e9e9;
+    --shadow: 0 1px 2px rgba(20,30,25,0.06), 0 8px 24px -12px rgba(20,30,25,0.12);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+      --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+      --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+      --pos:#4ec486; --pos-soft:#173325;
+      --warn:#e2ab5c; --warn-soft:#3a2c14;
+      --oos:#e08b8b; --oos-soft:#3a2222;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101613; --surface:#161f19; --surface-2:#1c2620;
+    --ink:#e8ece8; --ink-muted:#98a59d; --border:#2b362f;
+    --accent:#54c39f; --accent-ink:#dff5ec; --accent-soft:#1b332b;
+    --pos:#4ec486; --pos-soft:#173325;
+    --warn:#e2ab5c; --warn-soft:#3a2c14;
+    --oos:#e08b8b; --oos-soft:#3a2222;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:var(--bg); color:var(--ink); margin:0; padding:0 20px;
+    font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; font-size:16px; line-height:1.55;
+  }
+  h1,h2,h3{ font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; text-wrap:balance; font-weight:600; margin:0; }
+  code{ font-family: ui-monospace, "SFMono-Regular", Consolas, Menlo, monospace; }
+  a{ color:var(--accent); }
+  button{ font-family:inherit; }
+
+  /* ---------- top bar ---------- */
+  .topbar{ max-width:720px; margin:0 auto; padding:22px 0 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .topbar .brand{ font-size:14.5px; font-weight:600; }
+  .topbar .brand .eyebrow{ display:block; font-family:ui-monospace,monospace; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-muted); font-weight:600; margin-bottom:3px; }
+  .topbar a.back{ font-size:13px; text-decoration:none; color:var(--ink-muted); border:1px solid var(--border); padding:7px 12px; border-radius:7px; }
+  .topbar a.back:hover{ color:var(--ink); background:var(--surface-2); }
+  .disclaimer{ max-width:720px; margin:0 auto 18px; font-size:12px; color:var(--ink-muted); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 12px; }
+
+  /* ---------- stepper breadcrumb ---------- */
+  .stepper{ max-width:720px; margin:0 auto 26px; display:flex; align-items:flex-start; }
+  .step{ flex:1; display:flex; flex-direction:column; align-items:center; position:relative; }
+  .step .circ{ width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:ui-monospace,monospace; font-size:12px; font-weight:700; background:var(--surface-2); color:var(--ink-muted); border:1.5px solid var(--border); z-index:1; }
+  .step.done .circ{ background:var(--accent); color:var(--surface); border-color:var(--accent); }
+  .step.current .circ{ background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent); }
+  .step .lbl{ font-size:10.5px; color:var(--ink-muted); margin-top:6px; text-align:center; max-width:80px; }
+  .step.current .lbl, .step.done .lbl{ color:var(--ink); font-weight:600; }
+  .step .line{ position:absolute; top:13px; left:-50%; width:100%; height:1.5px; background:var(--border); z-index:0; }
+  .step.done .line, .step.current .line{ background:var(--accent); }
+  .step:first-child .line{ display:none; }
+
+  /* ---------- app shell ---------- */
+  .app-shell{ max-width:620px; margin:0 auto 60px; background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; min-height:460px; }
+  .screen{ padding:28px 28px 26px; animation:fadein .22s ease; }
+  @keyframes fadein{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+  .screen h2{ font-size:20px; margin-bottom:6px; }
+  .screen .sub{ font-size:13.5px; color:var(--ink-muted); margin-bottom:20px; }
+
+  /* ---------- chart mock (idle screen) ---------- */
+  .mini-chart-wrap{ border:1px solid var(--border); border-radius:12px; background:var(--surface-2); padding:14px; margin-bottom:16px; position:relative; }
+  .indicator-badge{ display:inline-flex; align-items:center; gap:6px; font-family:ui-monospace,monospace; font-size:11px; font-weight:600; background:var(--accent-soft); color:var(--accent-ink); padding:3px 9px; border-radius:999px; margin-bottom:10px; }
+
+  .toast{
+    position:relative; margin-top:14px; background:var(--ink); color:var(--bg); border-radius:11px; padding:13px 16px;
+    display:flex; align-items:center; justify-content:space-between; gap:14px; box-shadow:var(--shadow);
+    animation:toastin .3s ease;
+  }
+  @keyframes toastin{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+  .toast span{ font-size:14px; }
+  .toast button{ flex:none; }
+
+  .fab{
+    position:fixed; right:24px; bottom:24px; z-index:40;
+    display:flex; align-items:center; gap:8px; background:var(--accent); color:var(--surface);
+    border:none; border-radius:999px; padding:13px 18px; font-size:13.5px; font-weight:600;
+    box-shadow:var(--shadow); cursor:pointer;
+  }
+
+  /* ---------- buttons & inputs ---------- */
+  .btn{ font-size:14px; font-weight:600; padding:11px 18px; border-radius:9px; border:1px solid var(--border); background:var(--surface); color:var(--ink); cursor:pointer; transition:transform .06s ease; }
+  .btn:hover{ background:var(--surface-2); }
+  .btn:active{ transform:scale(.98); }
+  .btn.primary{ background:var(--accent); color:var(--surface); border-color:var(--accent); }
+  .btn.primary:hover{ filter:brightness(1.06); }
+  .btn.primary:disabled{ opacity:.5; cursor:not-allowed; filter:none; }
+  .btn.ghost{ background:transparent; border-color:transparent; color:var(--ink-muted); }
+  .btn-row{ display:flex; gap:10px; margin-top:22px; }
+  .btn-row.end{ justify-content:flex-end; }
+
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12.5px; font-weight:600; color:var(--ink-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.03em; font-family:ui-monospace,monospace; }
+  .field input[type="text"], .field input[type="number"]{
+    width:100%; font-size:15px; padding:11px 13px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--ink); font-family:inherit;
+  }
+  .field input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .field .hint{ font-size:12px; color:var(--ink-muted); margin-top:5px; }
+  .seg{ display:flex; gap:8px; }
+  .seg button{ flex:1; padding:11px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--ink); font-size:14px; cursor:pointer; }
+  .seg button.active{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
+
+  .big-choice{ display:flex; flex-direction:column; gap:10px; }
+  .big-choice button{
+    display:flex; flex-direction:column; align-items:flex-start; gap:3px; text-align:left;
+    padding:16px 18px; border-radius:11px; border:1.5px solid var(--border); background:var(--bg); cursor:pointer;
+  }
+  .big-choice button:hover{ border-color:var(--accent); }
+  .big-choice button .t{ font-size:15px; font-weight:600; color:var(--ink); }
+  .big-choice button .d{ font-size:12.5px; color:var(--ink-muted); }
+
+  /* ---------- MCQ chat-style ---------- */
+  .mcq-badge{ display:inline-block; font-family:ui-monospace,monospace; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--accent-ink); background:var(--accent-soft); padding:3px 9px; border-radius:999px; margin-bottom:12px; }
+  .mcq-q{ font-size:16px; font-weight:600; margin-bottom:14px; line-height:1.5; }
+  .mcq-options{ display:flex; flex-direction:column; gap:8px; }
+  .mcq-options button{ text-align:left; padding:12px 15px; border-radius:9px; border:1.5px solid var(--border); background:var(--bg); font-size:14px; cursor:pointer; }
+  .mcq-options button:hover{ border-color:var(--accent); background:var(--accent-soft); }
+  .mcq-note{ margin-top:16px; font-size:12.5px; color:var(--ink-muted); background:var(--surface-2); border-radius:8px; padding:10px 12px; }
+
+  /* ---------- progress / generating ---------- */
+  .gen-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:50px 20px; text-align:center; }
+  .spinner{ width:42px; height:42px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--accent); animation:spin 0.8s linear infinite; margin-bottom:18px; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .progress-bar{ width:100%; max-width:280px; height:6px; border-radius:999px; background:var(--surface-2); overflow:hidden; margin-top:16px; }
+  .progress-bar .fill{ height:100%; background:var(--accent); border-radius:999px; transition:width .15s linear; }
+
+  /* ---------- review ---------- */
+  .summary-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:11px; padding:16px 18px; font-size:14.5px; line-height:1.7; margin-bottom:16px; }
+  .summary-card b{ color:var(--accent-ink); }
+  .warn-banner{ display:flex; gap:10px; background:var(--warn-soft); color:var(--warn); border:1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius:9px; padding:11px 14px; font-size:13px; margin-bottom:18px; align-items:flex-start; }
+  .warn-banner .dot{ flex:none; width:7px; height:7px; border-radius:50%; background:var(--warn); margin-top:6px; }
+  textarea{
+    width:100%; min-height:64px; font-family:inherit; font-size:14px; padding:11px 13px; border-radius:8px;
+    border:1px solid var(--border); background:var(--bg); color:var(--ink); resize:vertical;
+  }
+  textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .update-toast{ font-size:12.5px; color:var(--accent-ink); background:var(--accent-soft); border-radius:7px; padding:8px 11px; margin-top:10px; }
+
+  /* ---------- chart ---------- */
+  .chart-card{ border:1px solid var(--border); border-radius:11px; background:var(--surface); padding:14px; margin-bottom:16px; }
+  .chart-card h3{ font-size:13px; font-family:ui-monospace,monospace; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-muted); margin-bottom:2px; font-weight:600; }
+  .chart-card .cap{ font-size:11.5px; color:var(--ink-muted); margin-bottom:10px; }
+  .chart-legend{ display:flex; flex-wrap:wrap; gap:14px; margin-top:8px; font-size:11.5px; color:var(--ink-muted); }
+  .chart-legend .item{ display:flex; align-items:center; gap:6px; }
+  .chart-legend .sw{ width:14px; height:3px; border-radius:2px; display:inline-block; }
+  .chart-legend .tri{ width:0; height:0; display:inline-block; }
+  svg.chart{ display:block; width:100%; height:auto; }
+  .chart-marker{ cursor:pointer; }
+
+  /* ---------- deployed ---------- */
+  .deploy-icon{ width:56px; height:56px; border-radius:50%; background:var(--pos-soft); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; }
+
+  /* ---------- tooltip layer (shared) ---------- */
+  #tip-layer{
+    position:fixed; z-index:1000; max-width:260px; background:var(--ink); color:var(--bg);
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size:12.5px; line-height:1.5;
+    padding:8px 11px; border-radius:8px; box-shadow:var(--shadow);
+    opacity:0; transform:translateY(4px); transition:opacity .1s ease, transform .1s ease; pointer-events:none;
+  }
+  #tip-layer.visible{ opacity:1; transform:translateY(0); }
+
+  footer{ max-width:620px; margin:0 auto; padding:0 0 50px; text-align:center; font-size:12.5px; color:var(--ink-muted); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="eyebrow">Interactive Simulation</span>Indicator-Based Algo Strategy</div>
+  <a class="back" href="../algo-strategy-builder-prd/" target="_blank" rel="noopener">← Full PRD</a>
+</div>
+<div class="disclaimer">Illustrative simulation — mocked data throughout, not connected to a live trading platform or real Nubra Cloud infrastructure.</div>
+
+<div class="stepper" id="stepper"></div>
+
+<div class="app-shell">
+  <div class="screen" id="app"></div>
+</div>
+
+<footer>Nubra Internal Research Build — click through at your own pace, or press "Start over" any time.</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var STEPS = [
+    { key:"idle", label:"Nudge" },
+    { key:"card_flow", label:"Card Flow" },
+    { key:"mcq_loop", label:"MCQ Loop" },
+    { key:"generating", label:"Generate" },
+    { key:"review", label:"Review" },
+    { key:"deployed", label:"Deploy" }
+  ];
+
+  var CARD_FIELDS = [
+    { key:"instrument", label:"Instrument", type:"text", placeholder:"e.g. RELIANCE", hint:"The underlying this leg trades." },
+    { key:"entry", label:"Entry condition", type:"text", placeholder:"e.g. RSI(14) crosses below 30", hint:"Pre-filled from an indicator already on your chart." },
+    { key:"exit", label:"Exit condition", type:"text", placeholder:"e.g. RSI(14) crosses above 60", hint:"When this leg closes out." },
+    { key:"stopLoss", label:"Stop loss (%)", type:"number", placeholder:"2", hint:"Distance from entry price." },
+    { key:"target", label:"Target (%)", type:"number", placeholder:"5", hint:"Distance from entry price." },
+    { key:"qty", label:"Quantity (lots)", type:"number", placeholder:"1", hint:"Position size for this leg." },
+    { key:"orderType", label:"Order type", type:"seg", options:["Market","Limit"], hint:null },
+    { key:"validity", label:"Validity", type:"seg", options:["Intraday","Positional"], hint:null }
+  ];
+
+  function defaultLeg(n){
+    return {
+      instrument: n === 1 ? "RELIANCE" : "NIFTY",
+      entry: n === 1 ? "RSI(14) crosses below 30" : "Price crosses above VWAP",
+      exit: n === 1 ? "RSI(14) crosses above 60" : "Price crosses below VWAP",
+      stopLoss: n === 1 ? "2" : "1.5",
+      target: n === 1 ? "5" : "3",
+      qty: "1",
+      orderType: "Market",
+      validity: "Intraday"
+    };
+  }
+
+  var state = {
+    stage: "idle",
+    nudgeDismissed: false,
+    legType: null,
+    legIndex: 1,
+    cardIndex: -1,
+    legs: [],
+    leg2Intro: false,
+    mcqStep: 0,
+    mcqAnswers: [],
+    otherOpenFor: null,
+    chartData: null,
+    feedbackText: "",
+    feedbackNote: null,
+    quantityBumped: false
+  };
+
+  function el(html){
+    var d = document.createElement("div");
+    d.innerHTML = html.trim();
+    return d.firstElementChild;
+  }
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // ---------------- stepper ----------------
+  function renderStepper(){
+    var activeIdx = STEPS.findIndex(function(s){ return s.key === state.stage; });
+    var html = STEPS.map(function(s, i){
+      var cls = "step";
+      if (i < activeIdx) cls += " done";
+      else if (i === activeIdx) cls += " current";
+      return '<div class="' + cls + '"><div class="line"></div><div class="circ">' + (i+1) + '</div><div class="lbl">' + s.label + '</div></div>';
+    }).join("");
+    document.getElementById("stepper").innerHTML = html;
+  }
+
+  // ---------------- idle / nudge ----------------
+  function renderIdle(){
+    var toastHtml = state.nudgeDismissed ? "" :
+      '<div class="toast"><span>Want to automate this strategy?</span><button class="btn primary" id="btnAutomate">Automate it</button></div>';
+    return (
+      '<h2>Your chart</h2>' +
+      '<p class="sub">You already have an indicator applied — this is the trigger moment for the nudge.</p>' +
+      '<div class="mini-chart-wrap">' +
+        '<span class="indicator-badge">RSI (14) applied</span>' +
+        miniStaticChart() +
+        toastHtml +
+      '</div>' +
+      '<div class="btn-row"><button class="btn ghost" id="btnAutomatePanel">Or open the automate-a-strategy panel</button></div>'
+    );
+  }
+  function miniStaticChart(){
+    // small decorative static candle row, purely cosmetic for the idle screen
+    var bars = [40,55,48,62,58,70,64,52,60,74,68,80];
+    var w = 560, h = 90, bw = w / bars.length;
+    var max = Math.max.apply(null, bars), min = Math.min.apply(null, bars);
+    var pts = bars.map(function(v, i){
+      var x = i * bw + bw/2;
+      var y = h - ((v - min) / (max - min)) * (h - 10) - 5;
+      return x + "," + y;
+    }).join(" ");
+    return '<svg class="chart" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
+      '<polyline points="' + pts + '" fill="none" stroke="var(--ink-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"></polyline>' +
+      '</svg>';
+  }
+
+  // ---------------- guided card flow ----------------
+  function renderCardFlow(){
+    if (state.cardIndex === -1){
+      return (
+        '<h2>Guided Card Flow</h2>' +
+        '<p class="sub">First question, always: how many legs does this strategy have?</p>' +
+        '<div class="big-choice">' +
+          '<button id="choiceSingle"><span class="t">Single-leg</span><span class="d">One instrument — most strategies start here.</span></button>' +
+          '<button id="choiceMulti"><span class="t">Multi-leg / options</span><span class="d">Two or more legs, e.g. a hedge or a spread.</span></button>' +
+        '</div>'
+      );
+    }
+    if (state.leg2Intro){
+      return (
+        '<h2>Leg 1 done</h2>' +
+        '<p class="sub">Multi-leg strategies repeat this same card set once per leg. Let’s set up leg 2.</p>' +
+        '<div class="btn-row"><button class="btn primary" id="btnLeg2Continue">Continue to leg 2 →</button></div>'
+      );
+    }
+    var leg = state.legs[state.legIndex - 1];
+    var field = CARD_FIELDS[state.cardIndex];
+    var legLabel = state.legType === "multi_leg" ? (" — Leg " + state.legIndex) : "";
+    var total = CARD_FIELDS.length;
+    var body = "";
+    if (field.type === "text" || field.type === "number"){
+      body = '<div class="field"><label>' + esc(field.label) + '</label>' +
+        '<input type="' + field.type + '" id="cardInput" value="' + esc(leg[field.key]) + '" placeholder="' + esc(field.placeholder) + '">' +
+        (field.hint ? '<div class="hint">' + esc(field.hint) + '</div>' : '') +
+        '</div>';
+    } else if (field.type === "seg"){
+      body = '<div class="field"><label>' + esc(field.label) + '</label><div class="seg" id="segGroup">' +
+        field.options.map(function(o){
+          return '<button data-val="' + o + '" class="' + (leg[field.key] === o ? "active" : "") + '">' + o + '</button>';
+        }).join("") +
+        '</div></div>';
+    }
+    return (
+      '<h2>Guided Card Flow' + esc(legLabel) + '</h2>' +
+      '<p class="sub">Card ' + (state.cardIndex + 1) + ' of ' + total + ' · pre-filled where inferable from your chart.</p>' +
+      body +
+      '<div class="btn-row">' +
+        (state.cardIndex > 0 || state.legIndex > 1 ? '<button class="btn" id="btnCardBack">Back</button>' : '') +
+        '<button class="btn primary" id="btnCardNext" style="margin-left:auto">Next →</button>' +
+      '</div>'
+    );
+  }
+
+  // ---------------- adaptive MCQ loop ----------------
+  var MCQS = [
+    {
+      q: "Your stop loss is a percentage — should it apply to entry price or live market price?",
+      options: ["Entry price", "Live market price"],
+      note: null
+    },
+    {
+      q: "Just double-checking — for leg 1, your target (5%) sits closer to entry than typical for this stop loss width. Want to review the numbers, or is this intentional?",
+      options: ["It's intentional, keep going", "Let me widen the target"],
+      note: "This is the contradiction-handling mechanic from the PRD (§8.3) — a conflict surfaces as another question here, not a blocking error."
+    }
+  ];
+  function renderMcqLoop(){
+    var m = MCQS[state.mcqStep];
+    var showOther = state.otherOpenFor === state.mcqStep;
+    return (
+      '<span class="mcq-badge">AI-generated · with ‘Other’</span>' +
+      '<div class="mcq-q">' + esc(m.q) + '</div>' +
+      '<div class="mcq-options">' +
+        m.options.map(function(o, i){
+          return '<button data-opt="' + i + '">' + esc(o) + '</button>';
+        }).join("") +
+        '<button data-opt="other">Other — let me type it</button>' +
+      '</div>' +
+      (showOther ? '<div class="field" style="margin-top:12px;"><input type="text" id="otherInput" placeholder="Type your own answer..."><div class="btn-row"><button class="btn primary" id="btnOtherSubmit" style="margin-left:auto">Submit</button></div></div>' : '') +
+      (m.note ? '<div class="mcq-note">' + esc(m.note) + '</div>' : '')
+    );
+  }
+
+  // ---------------- generating ----------------
+  function renderGenerating(){
+    return (
+      '<div class="gen-wrap">' +
+        '<div class="spinner"></div>' +
+        '<h2 style="font-size:17px;">Generating your strategy…</h2>' +
+        '<p class="sub" id="genTimer">Estimated time: 8s</p>' +
+        '<div class="progress-bar"><div class="fill" id="genFill" style="width:0%"></div></div>' +
+      '</div>'
+    );
+  }
+
+  // ---------------- review ----------------
+  function buildSummary(){
+    var parts = state.legs.map(function(leg, i){
+      var tag = state.legType === "multi_leg" ? ("Leg " + (i+1) + " — ") : "";
+      return tag + "<b>" + esc(leg.instrument) + "</b>: enter when " + esc(leg.entry) + ", exit when " + esc(leg.exit) +
+        ", stop loss " + esc(leg.stopLoss) + "%, target " + esc(leg.target) + "%, " + esc(leg.qty) + " lot(s), " +
+        esc(leg.orderType) + " order, " + esc(leg.validity) + ".";
+    });
+    return parts.join("<br><br>");
+  }
+
+  function renderReview(){
+    if (!state.chartData){ state.chartData = genBacktestData(); }
+    return (
+      '<h2>Review &amp; confirmation</h2>' +
+      '<p class="sub">Plain-language summary — never the generated code.</p>' +
+      '<div class="summary-card">This strategy will monitor ' + state.legs.map(function(l){return esc(l.instrument);}).join(" and ") + '. ' + buildSummary() + '</div>' +
+      '<div class="chart-card">' +
+        '<h3>Chart backtest preview</h3>' +
+        '<div class="cap">' + esc(state.legs[0].instrument) + ' · last 60 sessions · indicator plotted + markers show every bar this strategy would have fired</div>' +
+        renderChart(state.chartData) +
+        '<div class="chart-legend">' +
+          '<span class="item"><span class="sw" style="background:var(--ink-muted); opacity:.5;"></span>Price</span>' +
+          '<span class="item"><span class="sw" style="background:var(--accent);"></span>Indicator (moving avg.)</span>' +
+          '<span class="item">▲ <span style="color:var(--pos)">Entry</span></span>' +
+          '<span class="item">▼ <span style="color:var(--oos)">Exit</span></span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="warn-banner"><span class="dot"></span><span>This strategy will place real orders on confirmation. Review the summary and backtest above carefully before deploying.</span></div>' +
+      '<div class="field"><label>Want to change anything?</label>' +
+        '<textarea id="feedbackInput" placeholder="Describe any change in your own words…">' + esc(state.feedbackText) + '</textarea>' +
+        (state.feedbackNote ? '<div class="update-toast">' + esc(state.feedbackNote) + '</div>' : '') +
+      '</div>' +
+      '<div class="btn-row">' +
+        '<button class="btn" id="btnFeedbackUpdate">Update strategy</button>' +
+        '<button class="btn primary" id="btnDeploy" style="margin-left:auto">Deploy strategy</button>' +
+      '</div>'
+    );
+  }
+
+  function genBacktestData(){
+    var n = 60, price = 1000, candles = [], seed = 7;
+    function rnd(){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    for (var i = 0; i < n; i++){
+      var open = price;
+      var change = (rnd() - 0.48) * 14;
+      var close = open + change;
+      var high = Math.max(open, close) + rnd() * 5;
+      var low = Math.min(open, close) - rnd() * 5;
+      candles.push({ open:open, close:close, high:high, low:low });
+      price = close;
+    }
+    // simple moving average as "the indicator"
+    var period = 8, ma = [];
+    for (var j = 0; j < n; j++){
+      if (j < period - 1){ ma.push(null); continue; }
+      var sum = 0;
+      for (var k = j - period + 1; k <= j; k++){ sum += candles[k].close; }
+      ma.push(sum / period);
+    }
+    // markers: crossover of close vs ma
+    var markers = [];
+    var wasAbove = null;
+    for (var m = period; m < n; m++){
+      if (ma[m] == null || ma[m-1] == null) continue;
+      var aboveNow = candles[m].close > ma[m];
+      var aboveBefore = candles[m-1].close > ma[m-1];
+      if (aboveBefore === false && aboveNow === true){
+        markers.push({ index:m, type:"entry" });
+      } else if (aboveBefore === true && aboveNow === false){
+        markers.push({ index:m, type:"exit" });
+      }
+    }
+    return { candles:candles, ma:ma, markers:markers };
+  }
+
+  function renderChart(data){
+    var w = 560, h = 230, padL = 36, padR = 8, padT = 10, padB = 10;
+    var innerW = w - padL - padR, innerH = h - padT - padB;
+    var n = data.candles.length;
+    var allVals = [];
+    data.candles.forEach(function(c){ allVals.push(c.high, c.low); });
+    var maxV = Math.max.apply(null, allVals), minV = Math.min.apply(null, allVals);
+    var range = (maxV - minV) || 1;
+    function y(v){ return padT + innerH - ((v - minV) / range) * innerH; }
+    function x(i){ return padL + (i + 0.5) * (innerW / n); }
+    var bw = Math.max(2, (innerW / n) * 0.55);
+
+    var gridLines = "";
+    for (var g = 0; g <= 3; g++){
+      var gv = minV + (range * g / 3);
+      var gy = y(gv);
+      gridLines += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (w - padR) + '" y2="' + gy + '" stroke="var(--border)" stroke-width="1"></line>';
+      gridLines += '<text x="2" y="' + (gy + 3) + '" font-size="9" font-family="ui-monospace,monospace" fill="var(--ink-muted)">' + Math.round(gv) + '</text>';
+    }
+
+    var candleSvg = data.candles.map(function(c, i){
+      var up = c.close >= c.open;
+      var color = up ? "var(--pos)" : "var(--oos)";
+      var cx = x(i);
+      var bodyTop = y(Math.max(c.open, c.close));
+      var bodyBot = y(Math.min(c.open, c.close));
+      var bodyH = Math.max(1.5, bodyBot - bodyTop);
+      return (
+        '<line x1="' + cx + '" y1="' + y(c.high) + '" x2="' + cx + '" y2="' + y(c.low) + '" stroke="' + color + '" stroke-width="1.2"></line>' +
+        '<rect x="' + (cx - bw/2) + '" y="' + bodyTop + '" width="' + bw + '" height="' + bodyH + '" fill="' + color + '" rx="1"></rect>'
+      );
+    }).join("");
+
+    var maPts = [];
+    data.ma.forEach(function(v, i){
+      if (v == null) return;
+      maPts.push(x(i) + "," + y(v));
+    });
+    var maLine = '<polyline points="' + maPts.join(" ") + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>';
+
+    var markerSvg = data.markers.map(function(mk, mi){
+      var cx = x(mk.index);
+      var isEntry = mk.type === "entry";
+      var color = isEntry ? "var(--pos)" : "var(--oos)";
+      var baseY = isEntry ? y(data.candles[mk.index].low) + 14 : y(data.candles[mk.index].high) - 14;
+      var tip = (isEntry ? "Entry" : "Exit") + " · day " + (mk.index + 1) + " · ₹" + Math.round(data.candles[mk.index].close);
+      var tri = isEntry
+        ? '<path d="M ' + cx + ' ' + (baseY - 6) + ' L ' + (cx-6) + ' ' + (baseY+6) + ' L ' + (cx+6) + ' ' + (baseY+6) + ' Z" fill="' + color + '"></path>'
+        : '<path d="M ' + cx + ' ' + (baseY + 6) + ' L ' + (cx-6) + ' ' + (baseY-6) + ' L ' + (cx+6) + ' ' + (baseY-6) + ' Z" fill="' + color + '"></path>';
+      return '<g class="chart-marker" tabindex="0" data-tip="' + esc(tip) + '">' + tri + '</g>';
+    }).join("");
+
+    return '<svg class="chart" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
+      gridLines + candleSvg + maLine + markerSvg +
+      '</svg>';
+  }
+
+  // ---------------- deployed ----------------
+  function renderDeployed(){
+    return (
+      '<div style="text-align:center; padding:20px 0 6px;">' +
+        '<div class="deploy-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--pos)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
+        '<h2 style="font-size:19px; margin-bottom:8px;">Deployed to Nubra Cloud</h2>' +
+        '<p class="sub" style="max-width:380px; margin-left:auto; margin-right:auto;">This flow’s scope ends here — Nubra Cloud now owns execution and monitoring.</p>' +
+        '<div class="btn-row" style="justify-content:center;">' +
+          '<button class="btn" id="btnViewNubra" disabled title="Illustrative only">View in Nubra Cloud (mock)</button>' +
+          '<button class="btn primary" id="btnRestart">Start over</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  // ---------------- render dispatch ----------------
+  function render(){
+    renderStepper();
+    var tipLayer = document.getElementById("tip-layer");
+    if (tipLayer) tipLayer.classList.remove("visible");
+    var app = document.getElementById("app");
+    var html;
+    if (state.stage === "idle") html = renderIdle();
+    else if (state.stage === "card_flow") html = renderCardFlow();
+    else if (state.stage === "mcq_loop") html = renderMcqLoop();
+    else if (state.stage === "generating") html = renderGenerating();
+    else if (state.stage === "review") html = renderReview();
+    else html = renderDeployed();
+    app.innerHTML = html;
+    bind();
+  }
+
+  // ---------------- transitions / bindings ----------------
+  function startCardFlow(){
+    state.stage = "card_flow";
+    state.cardIndex = -1;
+    render();
+  }
+  function beginLeg(n){
+    state.legIndex = n;
+    state.legs[n - 1] = state.legs[n - 1] || defaultLeg(n);
+    state.cardIndex = 0;
+    state.leg2Intro = false;
+    render();
+  }
+
+  function bind(){
+    var $ = function(id){ return document.getElementById(id); };
+
+    if ($("btnAutomate")) $("btnAutomate").onclick = function(){ startCardFlow(); };
+    if ($("btnAutomatePanel")) $("btnAutomatePanel").onclick = function(){ startCardFlow(); };
+
+    if ($("choiceSingle")) $("choiceSingle").onclick = function(){ state.legType = "single_leg"; beginLeg(1); };
+    if ($("choiceMulti")) $("choiceMulti").onclick = function(){ state.legType = "multi_leg"; beginLeg(1); };
+
+    if ($("btnLeg2Continue")) $("btnLeg2Continue").onclick = function(){ beginLeg(2); };
+
+    if ($("cardInput")){
+      $("cardInput").oninput = function(e){
+        state.legs[state.legIndex - 1][CARD_FIELDS[state.cardIndex].key] = e.target.value;
+      };
+    }
+    if ($("segGroup")){
+      Array.prototype.forEach.call($("segGroup").querySelectorAll("button"), function(btn){
+        btn.onclick = function(){
+          state.legs[state.legIndex - 1][CARD_FIELDS[state.cardIndex].key] = btn.getAttribute("data-val");
+          render();
+        };
+      });
+    }
+    if ($("btnCardNext")) $("btnCardNext").onclick = function(){
+      if (state.cardIndex < CARD_FIELDS.length - 1){
+        state.cardIndex++;
+      } else if (state.legType === "multi_leg" && state.legIndex === 1){
+        state.leg2Intro = true;
+      } else {
+        state.stage = "mcq_loop";
+        state.mcqStep = 0;
+      }
+      render();
+    };
+    if ($("btnCardBack")) $("btnCardBack").onclick = function(){
+      if (state.cardIndex > 0){ state.cardIndex--; }
+      else if (state.legIndex === 2){ state.legIndex = 1; state.cardIndex = CARD_FIELDS.length - 1; }
+      render();
+    };
+
+    if ($(".mcq-options")) {}
+    var mcqBtns = document.querySelectorAll(".mcq-options button");
+    Array.prototype.forEach.call(mcqBtns, function(btn){
+      btn.onclick = function(){
+        var opt = btn.getAttribute("data-opt");
+        if (opt === "other"){
+          state.otherOpenFor = state.mcqStep;
+          render();
+          return;
+        }
+        advanceMcq();
+      };
+    });
+    if ($("btnOtherSubmit")) $("btnOtherSubmit").onclick = function(){ advanceMcq(); };
+
+    if ($("btnDeploy")) $("btnDeploy").onclick = function(){
+      state.stage = "deployed";
+      render();
+    };
+    if ($("btnRestart")) $("btnRestart").onclick = function(){
+      state = {
+        stage:"idle", nudgeDismissed:false, legType:null, legIndex:1, cardIndex:-1, legs:[],
+        leg2Intro:false, mcqStep:0, mcqAnswers:[], otherOpenFor:null, chartData:null,
+        feedbackText:"", feedbackNote:null, quantityBumped:false
+      };
+      render();
+    };
+    if ($("feedbackInput")) $("feedbackInput").oninput = function(e){ state.feedbackText = e.target.value; };
+    if ($("btnFeedbackUpdate")) $("btnFeedbackUpdate").onclick = function(){
+      if (!state.feedbackText.trim()) return;
+      var btn = $("btnFeedbackUpdate");
+      btn.textContent = "Updating…";
+      btn.disabled = true;
+      setTimeout(function(){
+        if (!state.quantityBumped){
+          state.legs[0].qty = String((parseInt(state.legs[0].qty, 10) || 1) + 1);
+          state.quantityBumped = true;
+        }
+        state.feedbackNote = "Updated based on your feedback — this re-runs the Code Generator and Backtest Engine against a new Strategy Spec version (§8, §9).";
+        state.feedbackText = "";
+        render();
+      }, 650);
+    };
+  }
+
+  function advanceMcq(){
+    state.otherOpenFor = null;
+    if (state.mcqStep < MCQS.length - 1){
+      state.mcqStep++;
+      render();
+    } else {
+      state.stage = "generating";
+      render();
+      runGenerating();
+    }
+  }
+
+  function runGenerating(){
+    var fill = document.getElementById("genFill");
+    var timer = document.getElementById("genTimer");
+    var total = 2200, start = Date.now();
+    var iv = setInterval(function(){
+      var elapsed = Date.now() - start;
+      var pct = Math.min(100, (elapsed / total) * 100);
+      if (fill) fill.style.width = pct + "%";
+      if (timer){
+        var remaining = Math.max(0, Math.ceil((total - elapsed) / 1000));
+        timer.textContent = "Estimated time: " + remaining + "s";
+      }
+      if (elapsed >= total){
+        clearInterval(iv);
+        state.stage = "review";
+        render();
+      }
+    }, 60);
+  }
+
+  render();
+
+  // ---------------- shared tooltip (for chart markers) ----------------
+  (function(){
+    var layer = document.createElement("div");
+    layer.id = "tip-layer";
+    document.body.appendChild(layer);
+    var current = null;
+    function position(x, y){
+      var r = layer.getBoundingClientRect();
+      var left = x + 14, top = y + 16;
+      left = Math.max(8, Math.min(left, window.innerWidth - r.width - 8));
+      top = Math.max(8, Math.min(top, window.innerHeight - r.height - 8));
+      layer.style.left = left + "px";
+      layer.style.top = top + "px";
+    }
+    document.body.addEventListener("mouseover", function(e){
+      var t = e.target.closest && e.target.closest("[data-tip]");
+      if (!t) return;
+      layer.textContent = t.getAttribute("data-tip");
+      layer.classList.add("visible");
+      current = t;
+    });
+    document.body.addEventListener("mousemove", function(e){
+      if (current) position(e.clientX, e.clientY);
+    });
+    document.body.addEventListener("mouseout", function(e){
+      var t = e.target.closest && e.target.closest("[data-tip]");
+      if (t){ layer.classList.remove("visible"); current = null; }
+    });
+  })();
+})();
+</script>
+</body>
+</html>
