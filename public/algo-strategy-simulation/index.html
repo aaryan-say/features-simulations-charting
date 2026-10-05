@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Indicator-Based Algo Strategy — Interactive Simulation</title>
+<title>Indicator-Based Algo Strategy - Interactive Simulation</title>
 <style>
   :root{
     --bg:#faf9f6; --surface:#ffffff; --surface-2:#f1efe8;
@@ -185,7 +185,7 @@
   <div class="brand"><span class="eyebrow">Interactive Simulation</span>Indicator-Based Algo Strategy</div>
   <a class="back" href="../algo-strategy-builder-prd/" target="_blank" rel="noopener">← Full PRD</a>
 </div>
-<div class="disclaimer">Illustrative simulation — mocked data throughout, not connected to a live trading platform or real Nubra Cloud infrastructure.</div>
+<div class="disclaimer">Illustrative simulation - mocked data throughout, not connected to a live trading platform or real Nubra Cloud infrastructure.</div>
 
 <div class="stepper" id="stepper"></div>
 
@@ -193,7 +193,7 @@
   <div class="screen" id="app"></div>
 </div>
 
-<footer>Nubra Internal Research Build — click through at your own pace, or press "Start over" any time.</footer>
+<footer>Nubra Internal Research Build - click through at your own pace, or press "Start over" any time.</footer>
 
 <script>
 (function(){
@@ -276,7 +276,7 @@
       '<div class="toast"><span>Want to automate this strategy?</span><button class="btn primary" id="btnAutomate">Automate it</button></div>';
     return (
       '<h2>Your chart</h2>' +
-      '<p class="sub">You already have an indicator applied — this is the trigger moment for the nudge.</p>' +
+      '<p class="sub">You already have an indicator applied - this is the trigger moment for the nudge.</p>' +
       '<div class="mini-chart-wrap">' +
         '<span class="indicator-badge">RSI (14) applied</span>' +
         miniStaticChart() +
@@ -307,7 +307,7 @@
         '<h2>Guided Card Flow</h2>' +
         '<p class="sub">First question, always: how many legs does this strategy have?</p>' +
         '<div class="big-choice">' +
-          '<button id="choiceSingle"><span class="t">Single-leg</span><span class="d">One instrument — most strategies start here.</span></button>' +
+          '<button id="choiceSingle"><span class="t">Single-leg</span><span class="d">One instrument - most strategies start here.</span></button>' +
           '<button id="choiceMulti"><span class="t">Multi-leg / options</span><span class="d">Two or more legs, e.g. a hedge or a spread.</span></button>' +
         '</div>'
       );
@@ -321,7 +321,7 @@
     }
     var leg = state.legs[state.legIndex - 1];
     var field = CARD_FIELDS[state.cardIndex];
-    var legLabel = state.legType === "multi_leg" ? (" — Leg " + state.legIndex) : "";
+    var legLabel = state.legType === "multi_leg" ? (" - Leg " + state.legIndex) : "";
     var total = CARD_FIELDS.length;
     var body = "";
     if (field.type === "text" || field.type === "number"){
@@ -350,14 +350,14 @@
   // ---------------- adaptive MCQ loop ----------------
   var MCQS = [
     {
-      q: "Your stop loss is a percentage — should it apply to entry price or live market price?",
+      q: "Your stop loss is a percentage - should it apply to entry price or live market price?",
       options: ["Entry price", "Live market price"],
       note: null
     },
     {
-      q: "Just double-checking — for leg 1, your target (5%) sits closer to entry than typical for this stop loss width. Want to review the numbers, or is this intentional?",
+      q: "Just double-checking - for leg 1, your target (5%) sits closer to entry than typical for this stop loss width. Want to review the numbers, or is this intentional?",
       options: ["It's intentional, keep going", "Let me widen the target"],
-      note: "This is the contradiction-handling mechanic from the PRD (§8.3) — a conflict surfaces as another question here, not a blocking error."
+      note: "This is the contradiction-handling mechanic from the PRD (§8.3) - a conflict surfaces as another question here, not a blocking error."
     }
   ];
   function renderMcqLoop(){
@@ -370,7 +370,7 @@
         m.options.map(function(o, i){
           return '<button data-opt="' + i + '">' + esc(o) + '</button>';
         }).join("") +
-        '<button data-opt="other">Other — let me type it</button>' +
+        '<button data-opt="other">Other - let me type it</button>' +
       '</div>' +
       (showOther ? '<div class="field" style="margin-top:12px;"><input type="text" id="otherInput" placeholder="Type your own answer..."><div class="btn-row"><button class="btn primary" id="btnOtherSubmit" style="margin-left:auto">Submit</button></div></div>' : '') +
       (m.note ? '<div class="mcq-note">' + esc(m.note) + '</div>' : '')
@@ -392,7 +392,7 @@
   // ---------------- review ----------------
   function buildSummary(){
     var parts = state.legs.map(function(leg, i){
-      var tag = state.legType === "multi_leg" ? ("Leg " + (i+1) + " — ") : "";
+      var tag = state.legType === "multi_leg" ? ("Leg " + (i+1) + " - ") : "";
       return tag + "<b>" + esc(leg.instrument) + "</b>: enter when " + esc(leg.entry) + ", exit when " + esc(leg.exit) +
         ", stop loss " + esc(leg.stopLoss) + "%, target " + esc(leg.target) + "%, " + esc(leg.qty) + " lot(s), " +
         esc(leg.orderType) + " order, " + esc(leg.validity) + ".";
@@ -404,7 +404,7 @@
     if (!state.chartData){ state.chartData = genBacktestData(); }
     return (
       '<h2>Review &amp; confirmation</h2>' +
-      '<p class="sub">Plain-language summary — never the generated code.</p>' +
+      '<p class="sub">Plain-language summary - never the generated code.</p>' +
       '<div class="summary-card">This strategy will monitor ' + state.legs.map(function(l){return esc(l.instrument);}).join(" and ") + '. ' + buildSummary() + '</div>' +
       '<div class="chart-card">' +
         '<h3>Chart backtest preview</h3>' +
@@ -528,7 +528,7 @@
       '<div style="text-align:center; padding:20px 0 6px;">' +
         '<div class="deploy-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--pos)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
         '<h2 style="font-size:19px; margin-bottom:8px;">Deployed to Nubra Cloud</h2>' +
-        '<p class="sub" style="max-width:380px; margin-left:auto; margin-right:auto;">This flow’s scope ends here — Nubra Cloud now owns execution and monitoring.</p>' +
+        '<p class="sub" style="max-width:380px; margin-left:auto; margin-right:auto;">This flow’s scope ends here - Nubra Cloud now owns execution and monitoring.</p>' +
         '<div class="btn-row" style="justify-content:center;">' +
           '<button class="btn" id="btnViewNubra" disabled title="Illustrative only">View in Nubra Cloud (mock)</button>' +
           '<button class="btn primary" id="btnRestart">Start over</button>' +
@@ -647,7 +647,7 @@
           state.legs[0].qty = String((parseInt(state.legs[0].qty, 10) || 1) + 1);
           state.quantityBumped = true;
         }
-        state.feedbackNote = "Updated based on your feedback — this re-runs the Code Generator and Backtest Engine against a new Strategy Spec version (§8, §9).";
+        state.feedbackNote = "Updated based on your feedback - this re-runs the Code Generator and Backtest Engine against a new Strategy Spec version (§8, §9).";
         state.feedbackText = "";
         render();
       }, 650);
