@@ -238,7 +238,7 @@
   <p class="dek">Converting a user's manual, indicator-based chart strategy into a runnable, cloud-deployable algo strategy - without the user ever needing to read or write code.</p>
   <div class="meta-row">
     <div>Status<strong>Draft v1.2</strong></div>
-    <div>Audience<strong>Design, Frontend, Backend</strong></div>
+    <div>Audience<strong>Product, Design, Frontend, Backend</strong></div>
     <div>Date<strong>05 Oct 2026</strong></div>
     <div>Owner<strong>Aryan A.</strong></div>
     <div>Related product<strong>Nubra Cloud (existing)</strong></div>
@@ -246,7 +246,7 @@
 </div>
 
 <div class="hero">
-  <p class="hero-pitch">Users already trade manually off indicators on their charts - watching for a condition, then placing the order by hand. This turns that same strategy into one that <strong>runs itself</strong> on Nubra Cloud: no code to write, a plain-language summary to approve, and a chart-based backtest showing exactly where it would have fired historically - before a single real order goes out.</p>
+  <p class="hero-pitch">Nubra Cloud can already run a Python strategy unattended. The only thing missing is turning what a trader already does by eye - watch an indicator, wait for the condition, place the order - into that code, without asking them to write any of it. <strong>That's the entire gap this closes.</strong></p>
   <div class="cta-row">
     <a class="cta-btn primary" href="../algo-strategy-simulation/" target="_blank" rel="noopener">Try the interactive simulation <span class="arrow">→</span></a>
     <a class="cta-btn secondary" href="#s4">See how it works <span class="arrow">↓</span></a>
@@ -304,15 +304,13 @@
       <div class="legend-item"><span class="tag oos">Out of scope</span> explicitly not v1</div>
       <div class="legend-item">No tag = settled, safe to build against.</div>
     </div>
-    <div class="note">
-      <strong>v1.2 revision:</strong> condensed for density - §4 and §9 are now diagrams, §6–§8 are tables. Decisions closed across v1.1/v1.2: Guided Card Flow + Adaptive MCQ Loop (not form/NL) · Nubra Cloud = execution target, interface-level only · compliance explicitly descoped · nudge = toast + panel · "regular trader" = trade frequency + existing indicators · no MCQ round indicator · contradictions resolved inline, not blocked at Review · completeness = qualitative checklist, not a score · scope ends at Nubra Cloud handoff · multi-leg/options in v1 · no concurrency cap · no cancel during generation.
-    </div>
+    <p style="font-size:12.5px; color:var(--ink-muted); max-width:none;"><strong style="color:var(--ink);">v1.2 revision log</strong> (skip if you just want the spec): condensed for density - §4 and §9 are now diagrams, §6–§8 are tables. Decisions closed across v1.1/v1.2: Guided Card Flow + Adaptive MCQ Loop (not form/NL) · Nubra Cloud = execution target, interface-level only · compliance explicitly descoped · nudge = toast + panel · "regular trader" = trade frequency + existing indicators · no MCQ round indicator · contradictions resolved inline, not blocked at Review · completeness = qualitative checklist, not a score · scope ends at Nubra Cloud handoff · multi-leg/options in v1 · no concurrency cap · no cancel during generation.</p>
   </section>
 
   <section id="s1">
     <span class="sec-num">§1</span>
     <h2>Overview</h2>
-    <p>Many users already trade a manual, indicator-based strategy by eye. This feature turns that into a strategy that runs itself on <strong>Nubra Cloud</strong> - Nubra's existing Python-code execution infrastructure - without the user writing a line of code. They answer guided questions, review a plain-language summary of what the system understood, correct it if needed, and only then deploy. See §4 for the flow, §5 for how it's built.</p>
+    <p>A reading guide, not a repeat of the hero above: §4 walks the six-step user journey end to end (start here for the shortest path to understanding what gets built); §5 shows how the pieces fit together technically; §6 onward is the detailed design/frontend/backend spec. <strong>Nubra Cloud</strong> - Nubra's existing Python-code execution infrastructure - is the execution target throughout; this document covers the authoring layer in front of it.</p>
   </section>
 
   <section id="s2">
@@ -326,6 +324,7 @@
           <li>Resolve ambiguity via guided + adaptive questions, not a long form or raw free text.</li>
           <li>Real-money consequence is explicit - confirm a plain-language summary, never the code.</li>
           <li>Reuse Nubra Cloud as the execution target; scope ends at a successful handoff.</li>
+          <li>Support single- <em>and</em> multi-leg/options strategies on one underlying, not just the simplest case.</li>
         </ul>
       </div>
       <div class="pair-col">
@@ -333,7 +332,7 @@
         <ul>
           <li>Not a strategy marketplace or sharing feature.</li>
           <li>Not live-strategy monitoring/pause/stop - Nubra Cloud's existing surface.</li>
-          <li>Single- and multi-leg/options on one underlying; not exotic custom payoffs.</li>
+          <li>Not exotic or custom option payoffs beyond standard multi-leg structures.</li>
           <li>Regulatory/compliance build-out. <span class="tag oos">Out of scope - §15</span></li>
         </ul>
       </div>
@@ -361,6 +360,7 @@
     <h2>User flow</h2>
     <div class="diagram-wrap">
       <svg viewBox="0 0 1080 220" xmlns="http://www.w3.org/2000/svg">
+        <title>Six-step user flow: Nudge, Guided Card Flow, Adaptive MCQ Loop, Generate, Review, Deploy, with an MCQ round-cap loop and a Review-to-Generate feedback loop. Each step is individually focusable for a full description.</title>
         <defs>
           <marker id="af-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-muted)"></path>
@@ -441,6 +441,7 @@
     <p class="lede">The authoring experience sits entirely in front of Nubra Cloud, reached once, at Deploy.</p>
     <div class="diagram-wrap">
       <svg viewBox="0 0 1120 460" xmlns="http://www.w3.org/2000/svg">
+        <title>System architecture: a client (chart, nudge, card flow, MCQ loop, review, deploy) in front of a Strategy Engine (Completeness Checker, MCQ Generator, Code Generator, Backtest Engine, and the Strategy Spec store), which hands off once to the external Nubra Cloud at Deploy. Each box is individually focusable for a full description.</title>
         <defs>
           <marker id="aa-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-muted)"></path>
@@ -490,8 +491,8 @@
 
         <path class="diagram-edge" marker-end="url(#aa-arrow)" d="M300,318 L300,345"></path>
         <g class="diagram-box engine" tabindex="0" data-tip="Runs the completed Strategy Spec's entry/exit conditions against recent historical price data and produces the chart markers shown in Review - proof of what the strategy would have done. Not a full statistical backtest in v1 - no win-rate/avg-return numbers, just the chart. See §14." aria-label="Backtest Engine"><rect x="210" y="345" width="220" height="52" rx="7"></rect><text x="225" y="367">Backtest</text><text x="225" y="383">Engine</text></g>
-        <path class="diagram-edge" marker-end="url(#aa-arrow)" d="M430,355 C 600,355 680,300 740,104"></path>
-        <text x="560" y="398" class="diagram-edge-label">chart + markers → Review</text>
+        <path class="diagram-edge" marker-end="url(#aa-arrow)" d="M225,345 L185,345 L185,16 L740,16 L740,34"></path>
+        <text x="460" y="11" class="diagram-edge-label">chart + markers → Review</text>
       </svg>
     </div>
     <ul>
@@ -575,6 +576,7 @@
     <p class="lede">Nine entities. <code>StrategySpec</code> is versioned and holds <code>legs[]</code> - length 1 for single-leg.</p>
     <div class="diagram-wrap">
       <svg viewBox="0 0 1060 400" xmlns="http://www.w3.org/2000/svg">
+        <title>Entity-relationship diagram: Draft is the root record, with CardAnswer, MCQRound, StrategySpec, ReviewFeedback, and DeployedStrategy hanging off it. StrategySpec further branches into Leg, GeneratedCode, and BacktestPreview; Leg branches into Condition. Each entity is individually focusable for a full description.</title>
         <defs>
           <marker id="ae-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-muted)"></path>
@@ -794,7 +796,7 @@
 
 <footer>
   <span>Indicator-Based Algo Strategy - PRD v1.2</span>
-  <span>Next: resolve §14, then design &amp; simulation off this spec</span>
+  <span>Next: resolve §14's five open items, then build against this spec</span>
 </footer>
 
 <script>

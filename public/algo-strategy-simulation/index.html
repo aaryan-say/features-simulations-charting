@@ -86,6 +86,9 @@
   @keyframes toastin{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
   .toast span{ font-size:14px; }
   .toast button{ flex:none; }
+  .toast .toast-actions{ display:flex; gap:8px; align-items:center; flex:none; }
+  .toast .btn.ghost{ color:var(--bg); opacity:.7; }
+  .toast .btn.ghost:hover{ opacity:1; background:rgba(255,255,255,0.12); }
 
   .fab{
     position:fixed; right:24px; bottom:24px; z-index:40;
@@ -93,6 +96,8 @@
     border:none; border-radius:999px; padding:13px 18px; font-size:13.5px; font-weight:600;
     box-shadow:var(--shadow); cursor:pointer;
   }
+  .fab:hover{ filter:brightness(1.06); }
+  .dismissed-note{ font-size:12.5px; color:var(--ink-muted); margin-top:10px; }
 
   /* ---------- buttons & inputs ---------- */
   .btn{ font-size:14px; font-weight:600; padding:11px 18px; border-radius:9px; border:1px solid var(--border); background:var(--surface); color:var(--ink); cursor:pointer; transition:transform .06s ease; }
@@ -273,7 +278,14 @@
   // ---------------- idle / nudge ----------------
   function renderIdle(){
     var toastHtml = state.nudgeDismissed ? "" :
-      '<div class="toast"><span>Want to automate this strategy?</span><button class="btn primary" id="btnAutomate">Automate it</button></div>';
+      '<div class="toast"><span>Want to automate this strategy?</span>' +
+        '<div class="toast-actions">' +
+          '<button class="btn primary" id="btnAutomate">Automate it</button>' +
+          '<button class="btn ghost" id="btnDismissToast">Dismiss</button>' +
+        '</div>' +
+      '</div>';
+    var dismissedNote = state.nudgeDismissed ?
+      '<p class="dismissed-note">Dismissed - automating is still available any time from the button below. The toast and the panel entry are two separate things; dismissing one doesn’t remove the other.</p>' : "";
     return (
       '<h2>Your chart</h2>' +
       '<p class="sub">You already have an indicator applied - this is the trigger moment for the nudge.</p>' +
@@ -282,7 +294,8 @@
         miniStaticChart() +
         toastHtml +
       '</div>' +
-      '<div class="btn-row"><button class="btn ghost" id="btnAutomatePanel">Or open the automate-a-strategy panel</button></div>'
+      dismissedNote +
+      '<button class="fab" id="btnAutomatePanel">Automate a strategy</button>'
     );
   }
   function miniStaticChart(){
@@ -350,14 +363,17 @@
   // ---------------- adaptive MCQ loop ----------------
   var MCQS = [
     {
-      q: "Your stop loss is a percentage - should it apply to entry price or live market price?",
+      q: function(){ return "Your stop loss is a percentage - should it apply to entry price or live market price?"; },
       options: ["Entry price", "Live market price"],
       note: null
     },
     {
-      q: "Just double-checking - for leg 1, your target (5%) sits closer to entry than typical for this stop loss width. Want to review the numbers, or is this intentional?",
+      q: function(){
+        var leg = state.legs[0];
+        return "Just double-checking - for leg 1, your target (" + leg.target + "%) sits closer to entry than typical for a " + leg.stopLoss + "% stop loss. Want to review the numbers, or is this intentional?";
+      },
       options: ["It's intentional, keep going", "Let me widen the target"],
-      note: "This is the contradiction-handling mechanic from the PRD (§8.3) - a conflict surfaces as another question here, not a blocking error."
+      note: "This is the contradiction-handling mechanic from the PRD (§8.3) - a conflict surfaces as another question here, not a blocking error. The numbers above are pulled from what you actually entered for leg 1."
     }
   ];
   function renderMcqLoop(){
@@ -365,7 +381,7 @@
     var showOther = state.otherOpenFor === state.mcqStep;
     return (
       '<span class="mcq-badge">AI-generated · with ‘Other’</span>' +
-      '<div class="mcq-q">' + esc(m.q) + '</div>' +
+      '<div class="mcq-q">' + esc(m.q()) + '</div>' +
       '<div class="mcq-options">' +
         m.options.map(function(o, i){
           return '<button data-opt="' + i + '">' + esc(o) + '</button>';
@@ -390,25 +406,34 @@
   }
 
   // ---------------- review ----------------
+  function pluralLots(q){
+    var n = parseInt(q, 10);
+    if (isNaN(n)) return esc(q) + " lots";
+    return n === 1 ? "1 lot" : (n + " lots");
+  }
   function buildSummary(){
     var parts = state.legs.map(function(leg, i){
       var tag = state.legType === "multi_leg" ? ("Leg " + (i+1) + " - ") : "";
       return tag + "<b>" + esc(leg.instrument) + "</b>: enter when " + esc(leg.entry) + ", exit when " + esc(leg.exit) +
-        ", stop loss " + esc(leg.stopLoss) + "%, target " + esc(leg.target) + "%, " + esc(leg.qty) + " lot(s), " +
+        ", stop loss " + esc(leg.stopLoss) + "%, target " + esc(leg.target) + "%, " + pluralLots(leg.qty) + ", " +
         esc(leg.orderType) + " order, " + esc(leg.validity) + ".";
     });
     return parts.join("<br><br>");
   }
 
   function renderReview(){
-    if (!state.chartData){ state.chartData = genBacktestData(); }
+    if (!state.chartData){ state.chartData = genBacktestData(backtestSeedInput()); }
+    var monitorLine = state.legType === "multi_leg"
+      ? "This strategy will monitor " + state.legs.map(function(l){return esc(l.instrument);}).join(" and ") + ". "
+      : "";
+    var legNote = state.legType === "multi_leg" ? " (showing leg 1 - later legs follow the same pattern)" : "";
     return (
       '<h2>Review &amp; confirmation</h2>' +
       '<p class="sub">Plain-language summary - never the generated code.</p>' +
-      '<div class="summary-card">This strategy will monitor ' + state.legs.map(function(l){return esc(l.instrument);}).join(" and ") + '. ' + buildSummary() + '</div>' +
+      '<div class="summary-card">' + monitorLine + buildSummary() + '</div>' +
       '<div class="chart-card">' +
         '<h3>Chart backtest preview</h3>' +
-        '<div class="cap">' + esc(state.legs[0].instrument) + ' · last 60 sessions · indicator plotted + markers show every bar this strategy would have fired</div>' +
+        '<div class="cap">' + esc(state.legs[0].instrument) + legNote + ' · last 60 sessions · indicator plotted + markers show every bar this strategy would have fired</div>' +
         renderChart(state.chartData) +
         '<div class="chart-legend">' +
           '<span class="item"><span class="sw" style="background:var(--ink-muted); opacity:.5;"></span>Price</span>' +
@@ -429,8 +454,17 @@
     );
   }
 
-  function genBacktestData(){
-    var n = 60, price = 1000, candles = [], seed = 7;
+  function backtestSeedInput(){
+    var leg = state.legs[0];
+    return leg.instrument + "|" + leg.entry + "|" + leg.exit + "|" + leg.stopLoss + "|" + leg.target + "|" + leg.qty;
+  }
+  function hashStr(s){
+    var h = 7;
+    for (var i = 0; i < s.length; i++){ h = (h * 31 + s.charCodeAt(i)) % 104729; }
+    return h || 7;
+  }
+  function genBacktestData(seedInput){
+    var n = 60, price = 1000, candles = [], seed = hashStr(String(seedInput || "default"));
     function rnd(){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
     for (var i = 0; i < n; i++){
       var open = price;
@@ -573,6 +607,7 @@
 
     if ($("btnAutomate")) $("btnAutomate").onclick = function(){ startCardFlow(); };
     if ($("btnAutomatePanel")) $("btnAutomatePanel").onclick = function(){ startCardFlow(); };
+    if ($("btnDismissToast")) $("btnDismissToast").onclick = function(){ state.nudgeDismissed = true; render(); };
 
     if ($("choiceSingle")) $("choiceSingle").onclick = function(){ state.legType = "single_leg"; beginLeg(1); };
     if ($("choiceMulti")) $("choiceMulti").onclick = function(){ state.legType = "multi_leg"; beginLeg(1); };
@@ -647,7 +682,8 @@
           state.legs[0].qty = String((parseInt(state.legs[0].qty, 10) || 1) + 1);
           state.quantityBumped = true;
         }
-        state.feedbackNote = "Updated based on your feedback - this re-runs the Code Generator and Backtest Engine against a new Strategy Spec version (§8, §9).";
+        state.chartData = genBacktestData(backtestSeedInput());
+        state.feedbackNote = "Updated based on your feedback - this re-runs the Code Generator and Backtest Engine against a new Strategy Spec version (§8, §9). The chart above just re-ran against the updated spec.";
         state.feedbackText = "";
         render();
       }, 650);
