@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chart Analytics with AI PRD</title>
+<style>
+  :root{
+    --bg:#faf9f6; --surface:#ffffff; --surface-2:#f1efe8;
+    --ink:#1b211d; --ink-muted:#5b655f; --border:#dfddd2;
+    --accent:#6d4fd6; --accent-ink:#3c2a86; --accent-soft:#ece7fb;
+    --pos:#1e7d4f; --pos-soft:#e7f4ec;
+    --warn:#9a5b14; --warn-soft:#fbf0df;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#131019; --surface:#1a1623; --surface-2:#211c2c;
+      --ink:#ece9f4; --ink-muted:#a39cb5; --border:#322c3f;
+      --accent:#a78bfa; --accent-ink:#ede8fe; --accent-soft:#2a2240;
+      --pos:#4ec486; --pos-soft:#173325;
+      --warn:#e2ab5c; --warn-soft:#3a2c14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#131019; --surface:#1a1623; --surface-2:#211c2c;
+    --ink:#ece9f4; --ink-muted:#a39cb5; --border:#322c3f;
+    --accent:#a78bfa; --accent-ink:#ede8fe; --accent-soft:#2a2240;
+    --pos:#4ec486; --pos-soft:#173325;
+    --warn:#e2ab5c; --warn-soft:#3a2c14;
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; font-size:16px; line-height:1.55; padding:0 20px; }
+  h1,h2{ font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; text-wrap:balance; color:var(--ink); line-height:1.15; font-weight:600; }
+  code{ font-family: ui-monospace, "SFMono-Regular", Consolas, Menlo, monospace; font-size:13px; background:var(--surface-2); padding:1px 6px; border-radius:4px; }
+
+  .masthead{ max-width:1180px; margin:0 auto; padding:44px 0 26px; border-bottom:1px solid var(--border); }
+  .eyebrow{ display:flex; align-items:center; gap:10px; font-family: ui-monospace, monospace; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-ink); background:var(--accent-soft); width:fit-content; padding:4px 10px; border-radius:3px; margin-bottom:16px; }
+  .masthead h1{ font-size:clamp(30px,4.5vw,44px); margin:0 0 8px; max-width:20ch; }
+  .masthead .dek{ font-size:16.5px; color:var(--ink-muted); max-width:64ch; margin:0 0 18px; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:26px; font-family: ui-monospace, monospace; font-size:12px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.04em; }
+  .meta-row strong{ display:block; color:var(--ink); font-family: ui-sans-serif, sans-serif; text-transform:none; letter-spacing:0; font-size:14px; font-weight:600; margin-top:2px; }
+  .proto-links{ display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+  .proto-link{ display:inline-block; font-family:ui-monospace,monospace; font-size:13px; color:var(--accent-ink); background:var(--accent-soft); border:1px solid var(--accent); padding:7px 14px; border-radius:7px; text-decoration:none; }
+
+  .shell{ max-width:1180px; margin:0 auto; display:grid; grid-template-columns: 220px minmax(0,1fr); gap:48px; padding-top:32px; }
+  @media (max-width: 900px){ .shell{ grid-template-columns: 1fr; } }
+
+  nav.toc{ position:sticky; top:20px; align-self:start; }
+  nav.toc .toc-label{ font-family: ui-monospace, monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-muted); margin-bottom:10px; }
+  nav.toc ol{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+  nav.toc a{ display:block; text-decoration:none; color:var(--ink-muted); font-size:13px; padding:5px 9px; border-radius:5px; border-left:2px solid transparent; }
+  nav.toc a:hover{ color:var(--ink); background:var(--surface-2); }
+  nav.toc a.active{ color:var(--accent-ink); background:var(--accent-soft); border-left-color:var(--accent); font-weight:600; }
+  @media (max-width:900px){ nav.toc{ position:static; border:1px solid var(--border); border-radius:8px; padding:14px; background:var(--surface); } }
+
+  main{ min-width:0; padding-bottom:70px; }
+  section{ padding-top:38px; scroll-margin-top:20px; }
+  section:first-of-type{ padding-top:0; }
+  .sec-num{ font-family: ui-monospace, monospace; color:var(--accent); font-size:13px; letter-spacing:.04em; margin-bottom:4px; display:block; }
+  section h2{ font-size:22px; margin:0 0 10px; }
+  section h3{ font-size:14px; margin:24px 0 8px; color:var(--ink-muted); font-family:ui-monospace,monospace; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+  p{ margin:8px 0; max-width:74ch; }
+  ul{ padding-left:20px; margin:8px 0; max-width:72ch; }
+  li{ margin:5px 0; }
+  hr.rule{ border:none; border-top:1px solid var(--border); margin:36px 0 0; }
+
+  .tag{ display:inline-flex; align-items:center; gap:5px; font-family: ui-monospace, monospace; font-size:11px; letter-spacing:.03em; padding:2px 8px; border-radius:999px; white-space:nowrap; font-weight:600; }
+  .tag::before{ content:""; width:6px; height:6px; border-radius:50%; }
+  .tag.confirmed{ background:var(--pos-soft); color:var(--pos); } .tag.confirmed::before{ background:var(--pos); }
+  .tag.open{ background:var(--warn-soft); color:var(--warn); } .tag.open::before{ background:var(--warn); }
+  .tag.modeled{ background:var(--accent-soft); color:var(--accent-ink); } .tag.modeled::before{ background:var(--accent); }
+
+  .table-wrap{ overflow-x:auto; margin:12px 0 10px; border:1px solid var(--border); border-radius:10px; }
+  table{ border-collapse:collapse; width:100%; min-width:480px; font-size:14px; background:var(--surface); }
+  thead th{ text-align:left; font-family: ui-monospace, monospace; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-muted); background:var(--surface-2); padding:9px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody td:first-child{ font-weight:600; }
+  tbody td a{ color:var(--accent-ink); }
+
+  .callout{ border:1px solid var(--border); background:var(--surface); border-radius:10px; padding:14px 16px; margin:14px 0; }
+  .callout .lbl{ font-family:ui-monospace,monospace; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-muted); margin-bottom:6px; }
+  .callout .num{ font-size:26px; font-weight:700; font-family: Georgia, serif; color:var(--accent-ink); }
+
+  footer{ max-width:1180px; margin:0 auto; padding:30px 0 50px; border-top:1px solid var(--border); font-size:12.5px; color:var(--ink-muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+</style>
+</head>
+<body>
+<div class="masthead">
+  <div class="eyebrow">PRD &middot; Draft</div>
+  <h1>Chart Analytics with AI</h1>
+  <p class="dek">Let a user get an AI-generated trade setup directly on the chart they're already looking at, and go straight from that setup into a pre-filled order ticket.</p>
+  <div class="meta-row">
+    <div>Status<strong>Draft v0.1</strong></div>
+    <div>Audience<strong>Charting FE + AI/ML + OMS</strong></div>
+    <div>Date<strong>6 Oct 2026</strong></div>
+    <div>Owner<strong>Aryan A.</strong></div>
+  </div>
+  <div class="proto-links">
+    <a class="proto-link" href="https://aaryan-say.github.io/features-simulations-charting/ai-chart-analytics/" target="_blank" rel="noopener">&#9654; Prototype A &mdash; docked side pane</a>
+    <a class="proto-link" href="https://aaryan-say.github.io/features-simulations-charting/ai-analysis-popup/" target="_blank" rel="noopener">&#9654; Prototype B &mdash; floating pop-up</a>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-label">Contents</div>
+    <ol id="toc-list">
+      <li><a href="#s1">1. Overview</a></li>
+      <li><a href="#s2">2. User flow</a></li>
+      <li><a href="#s3">3. UX approaches</a></li>
+      <li><a href="#s4">4. Analysis modes</a></li>
+      <li><a href="#s5">5. Expected impact on orders</a></li>
+      <li><a href="#s6">6. Locked</a></li>
+      <li><a href="#s7">7. Open questions</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="s1">
+      <span class="sec-num">&sect;1</span>
+      <h2>Overview</h2>
+      <p>Today, forming a view and acting on it are two disconnected steps: a user reads the chart themselves, then separately opens the order ticket to place a trade. This feature closes that loop &mdash; an <code>Analyse with AI</code> entry point on the chart generates a trade setup (direction, entry, stop loss, target, rationale) for whatever instrument is on screen, shows it inline without leaving the chart, and lets the user go straight from that setup into a pre-filled order ticket.</p>
+      <p>Two clickable prototypes exist for how the result is presented &mdash; see &sect;3 &mdash; built to get a founder decision before committing engineering effort to one.</p>
+    </section>
+
+    <section id="s2">
+      <span class="sec-num">&sect;2</span>
+      <h2>User flow</h2>
+      <ul>
+        <li>User opens a chart.</li>
+        <li>An <code>Analyse with AI</code> entry point (chart + AI icon) sits in the TradingView toolbar.</li>
+        <li>User selects the analysis mode &mdash; Quick or Deep &mdash; defaulting to Quick.</li>
+        <li>User clicks <code>Analyse with AI</code> (or, on repeat runs, an explicit <code>Go</code> button).</li>
+        <li>The AI analyses the current instrument and generates a setup: direction, confidence, entry / stop loss / target, rationale, favourable factors, and risks.</li>
+        <li>The setup is shown inside the chart experience; Entry / Stop Loss / Target are also plotted directly on the candles, color-matched to the same labels in the setup text.</li>
+        <li>A <code>[Buy/Sell] with this setup</code> action opens the order ticket pre-filled from the setup &mdash; the user only reviews and places.</li>
+      </ul>
+    </section>
+
+    <section id="s3">
+      <span class="sec-num">&sect;3</span>
+      <h2>UX approaches</h2>
+      <p>The flow in &sect;2 is identical in both prototypes &mdash; same chart, same watchlist, same Quick/Deep + Go, same chart annotation, same order ticket. They differ only in how the result is presented and how the toolbar icon behaves.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Approach</th><th>Presentation</th><th>Toolbar icon</th><th>Pattern matched</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>Docked side pane, widens from the chart's right edge; chart narrows to make room</td><td>Static chart+AI icon throughout</td><td>Novel for this feature</td></tr>
+            <tr><td>B</td><td>Floating pop-up anchored under the toolbar trigger; chart stays full-width underneath</td><td>Swaps to the platform's standard Decode AI sparkle once a result exists</td><td>Matches the existing Decode Charts pattern</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Links to both are in the masthead above.</p>
+    </section>
+
+    <section id="s4">
+      <span class="sec-num">&sect;4</span>
+      <h2>Analysis modes</h2>
+      <ul>
+        <li><strong>Quick</strong> &mdash; a single AI pass, faster output. Default mode.</li>
+        <li><strong>Deep</strong> &mdash; two AI agents independently analyse the setup, then debate their views before producing one combined final output. Slower, more thoroughly cross-checked.</li>
+        <li>An &#9432; info affordance next to Deep explains this distinction on demand, so the main copy stays uncluttered.</li>
+        <li>Re-running analysis after the first pass is an explicit action (<code>Go</code>) &mdash; Quick/Deep are pure selectors and never auto-trigger a new run by themselves.</li>
+      </ul>
+    </section>
+
+    <section id="s5">
+      <span class="sec-num">&sect;5</span>
+      <h2>Expected impact on orders <span class="tag modeled">Modeled, not measured</span></h2>
+      <p>No usage data exists yet for a feature that hasn't shipped. The figures below are a reasoned estimate to size expectations, not a forecast commitment.</p>
+      <h3>Baseline (measured, Web)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Month</th><th>Chart orders</th><th>Total Web orders</th><th>Chart's share</th></tr></thead>
+          <tbody>
+            <tr><td>September 2026</td><td>2,753</td><td>35,088</td><td>7.8%</td></tr>
+            <tr><td>October 2026 (1&ndash;6, partial)</td><td>1,018</td><td>8,578</td><td>11.9%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Annualizing October's partial run gives a current baseline of roughly <strong>5,000&ndash;5,300 chart orders/month</strong> on Web &mdash; already climbing as a share of total orders, independent of this feature.</p>
+      <h3>Modeled lift</h3>
+      <ul>
+        <li>This feature targets <em>conversion</em>, not traffic &mdash; it shortens the gap between viewing the chart and placing the order for users already there.</li>
+        <li>Assume 20&ndash;40% of chart viewers try the feature in month 1&ndash;2 (it sits prominently in the toolbar).</li>
+        <li>Assume a 10&ndash;25% relative conversion lift for that cohort, from the inline setup + pre-filled order ticket removing friction.</li>
+        <li>Net: (20&ndash;40%) &times; (10&ndash;25%) &asymp; 2&ndash;10% lift on chart-order volume.</li>
+      </ul>
+      <div class="callout">
+        <div class="lbl">Net modeled range</div>
+        <div class="num">+100 to +500 orders/month</div>
+        <p style="margin-top:6px;">Incremental Web orders in the first 1&ndash;2 months post-launch, nudging chart's share of total Web orders from ~12% toward ~13&ndash;14% &mdash; on top of existing organic growth.</p>
+      </div>
+      <p>Recommend validating with a 2&ndash;4 week A/B rollout once shipped, rather than treating this range as a committed forecast.</p>
+    </section>
+
+    <section id="s6">
+      <span class="sec-num">&sect;6</span>
+      <h2>Locked</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Decision</th><th>Approach</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Entry point</td><td>TradingView toolbar, top-right group</td><td><span class="tag confirmed">Confirmed</span></td></tr>
+            <tr><td>Default mode</td><td>Quick</td><td><span class="tag confirmed">Confirmed</span></td></tr>
+            <tr><td>Re-click behavior</td><td>Toggles the pane/pop-up open and closed without discarding the last analysis; re-running needs the explicit Go button</td><td><span class="tag confirmed">Confirmed</span></td></tr>
+            <tr><td>Chart annotation</td><td>Entry/Stop Loss/Target plotted directly on the candles, color-matched to the setup text</td><td><span class="tag confirmed">Confirmed</span></td></tr>
+            <tr><td>Setup CTA</td><td>Opens the order ticket pre-filled from the generated setup; user only reviews and places</td><td><span class="tag confirmed">Confirmed</span></td></tr>
+            <tr><td>Instrument switch</td><td>Switching the watchlist instrument resets any open/cached analysis rather than showing stale data</td><td><span class="tag confirmed">Confirmed</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <hr class="rule">
+    </section>
+
+    <section id="s7">
+      <span class="sec-num">&sect;7</span>
+      <h2>Open questions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Question</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Which of Approach A / B ships &mdash; pending founder review</td><td><span class="tag open">Open</span></td></tr>
+            <tr><td>Real AI/model backend to generate the setup (currently mocked client-side)</td><td><span class="tag open">Open</span></td></tr>
+            <tr><td>Real order routing (prototype places nothing with any exchange today)</td><td><span class="tag open">Open</span></td></tr>
+            <tr><td>Final icon asset for the standard Decode AI glyph (placeholder sparkle today, pending design)</td><td><span class="tag open">Open</span></td></tr>
+            <tr><td>How adoption/conversion will be instrumented to validate the &sect;5 modeled range</td><td><span class="tag open">Open</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <hr class="rule">
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <span>Chart Analytics with AI &mdash; PRD v0.1</span>
+  <span>Next: founder decision on &sect;3, then A/B rollout plan for &sect;5</span>
+</footer>
+
+<script>
+  (function(){
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+    var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+    if(!sections.length) return;
+    var byId = {};
+    links.forEach(function(a){ byId[a.getAttribute('href').slice(1)] = a; });
+    var observer = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        var link = byId[entry.target.id];
+        if(!link) return;
+        if(entry.isIntersecting){
+          links.forEach(function(l){ l.classList.remove('active'); });
+          link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-10% 0px -75% 0px', threshold: 0 });
+    sections.forEach(function(s){ observer.observe(s); });
+  })();
+</script>
+
+</body>
+</html>
