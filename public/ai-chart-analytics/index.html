@@ -86,7 +86,8 @@
   .wl-head .ttl svg{ color:var(--ink-faint); }
   .wl-head-icons{ margin-left:auto; display:flex; gap:10px; color:var(--ink-faint); }
   .wl-list{ overflow-y:auto; flex:1; }
-  .wl-row{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--border-soft); }
+  .wl-row{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--border-soft); cursor:pointer; }
+  .wl-row:hover{ background:var(--panel-2); }
   .wl-row.active{ background:var(--panel-2); border-left:2px solid var(--accent); padding-left:10px; }
   .wl-row .sym{ flex:1; min-width:0; }
   .wl-row .sym .top{ display:flex; align-items:center; gap:6px; font-weight:600; font-size:12.5px; }
@@ -185,11 +186,14 @@
   .ai-pane-head .sub{ font-size:11px; color:var(--ink-muted); }
   .ai-pane-close{ margin-left:auto; width:26px; height:26px; border-radius:7px; background:transparent; border:none; color:var(--ink-faint); display:flex; align-items:center; justify-content:center; }
   .ai-pane-close:hover{ background:var(--panel-2); color:var(--ink); }
-  .ai-pane-mode-row{ padding:12px 16px 0; flex:none; }
-  .mode-toggle-pane{ display:flex; gap:4px; background:var(--panel-2); border-radius:9px; padding:3px; }
+  .ai-pane-mode-row{ padding:12px 16px 0; flex:none; display:flex; gap:8px; align-items:stretch; }
+  .mode-toggle-pane{ flex:1; display:flex; gap:4px; background:var(--panel-2); border-radius:9px; padding:3px; }
   .mode-btn-pane{ flex:1; border:none; background:transparent; color:var(--ink-muted); font-size:12px; font-weight:600; padding:7px 0; border-radius:7px; }
   .mode-btn-pane:hover{ color:var(--ink); }
   .mode-btn-pane.active{ background:var(--accent); color:#fff; }
+  .mode-btn-pane:disabled, .pane-go-btn:disabled{ opacity:.5; cursor:default; }
+  .pane-go-btn{ flex:none; border:none; border-radius:9px; padding:0 18px; font-size:12.5px; font-weight:700; background:var(--accent); color:#fff; }
+  .pane-go-btn:hover{ filter:brightness(1.08); }
   .ai-pane-body{ flex:1; min-height:0; overflow-y:auto; padding:18px 16px; }
 
   .ai-state-idle{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; padding:30px 10px; color:var(--ink-muted); }
@@ -349,13 +353,13 @@
     <div class="sym-header">
       <div>
         <div class="name-row">
-          <h1>YESBANK</h1>
-          <span class="signals-badge">+ 5 signals</span>
+          <h1 id="symName">YESBANK</h1>
+          <span class="signals-badge" id="symSignals">+4 signals</span>
         </div>
         <div class="price-row">
-          <span class="p mono">20.92</span>
-          <span class="down mono">▼ 0.18 (-0.85%)</span>
-          <span>BSE</span>
+          <span class="p mono" id="symPrice">20.92</span>
+          <span class="down mono" id="symChange">▼ 0.18 (-0.85%)</span>
+          <span id="symExch">BSE</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
         </div>
       </div>
@@ -376,7 +380,7 @@
     <div class="tv-toolbar">
       <div class="grp">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <span class="tv-pill" style="font-weight:600;">YESBANK</span>
+        <span class="tv-pill" style="font-weight:600;" id="toolbarSym">YESBANK</span>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </div>
       <div class="div"></div>
@@ -413,13 +417,13 @@
         <div class="draw-toolbar" id="drawToolbar"></div>
         <div class="chart-plot">
           <div class="price-overlay">
-            <b>YESBANK · 1 · BSE</b>
+            <b id="overlaySymLine">YESBANK · 1 · BSE</b>
             <span class="o-dot">●</span>
-            <span>O<span class="o-hi">20.92</span></span><span>H<span class="o-hi">20.92</span></span><span>L20.91</span><span>C20.92</span><span class="up">+0.01 (+0.05%)</span>
+            <span id="overlayOhlc" style="display:flex; gap:10px;"><span>O<span class="o-hi">20.92</span></span><span>H<span class="o-hi">20.92</span></span><span>L20.91</span><span>C20.92</span><span class="up">+0.01 (+0.05%)</span></span>
           </div>
           <div class="order-ticket">
-            <div class="ot-box sell">20.91<span class="ot-tag">SELL</span><span class="ot-sub">0.01 · 1</span></div>
-            <div class="ot-box buy">20.92<span class="ot-tag">BUY</span></div>
+            <div class="ot-box sell"><span id="otSellPrice">20.91</span><span class="ot-tag">SELL</span><span class="ot-sub">0.01 · 1</span></div>
+            <div class="ot-box buy"><span id="otBuyPrice">20.92</span><span class="ot-tag">BUY</span></div>
           </div>
           <div class="vol-label">Volume <b class="mono" style="color:var(--ink-muted);">162</b>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
@@ -451,6 +455,7 @@
               <button class="mode-btn-pane active" data-mode="quick">Quick</button>
               <button class="mode-btn-pane" data-mode="deep">Deep</button>
             </div>
+            <button class="pane-go-btn" id="paneGoBtn">Go</button>
           </div>
           <div class="ai-pane-body" id="aiPaneBody"></div>
           <div class="ai-pane-foot" id="aiPaneFoot" style="display:none;">
@@ -484,12 +489,12 @@
       <button class="oms-icon-btn" id="omsClose"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
-    <div class="oms-sym-row">YESBANK <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    <div class="oms-sym-row" id="omsSymRow">YESBANK <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
     <div class="oms-price-row">
-      <span class="ltp mono">20.93</span>
-      <span class="down mono">▼ 0.17 (0.81%)</span>
-      <span>BSE <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; vertical-align:1px;"><path d="M6 9l6 6 6-6"/></svg></span>
-      <span class="mono" style="margin-left:auto;">NSE 20.92</span>
+      <span class="ltp mono" id="omsLtp">20.93</span>
+      <span class="down mono" id="omsChg">▼ 0.17 (0.81%)</span>
+      <span id="omsExch">BSE <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; vertical-align:1px;"><path d="M6 9l6 6 6-6"/></svg></span>
+      <span class="mono" style="margin-left:auto;" id="omsAltExch">NSE 20.92</span>
     </div>
 
     <div class="oms-seg-row">
@@ -626,16 +631,72 @@
     { sym:"CANBK", badge:"+7", exch:"BSE", px:"118.28", chg:"▼ 0.40 (-0.34%)", dir:"down" },
     { sym:"PNB", badge:"+5", exch:"BSE", px:"111.55", chg:"▼ 0.45 (-0.40%)", dir:"down" }
   ];
-  document.getElementById("wlList").innerHTML = WATCHLIST.map(function(r){
-    return '<div class="wl-row' + (r.active ? " active" : "") + '">' +
+
+  var currentInstrument = {
+    sym: WATCHLIST[0].sym, exch: WATCHLIST[0].exch, price: parseFloat(WATCHLIST[0].px),
+    badge: WATCHLIST[0].badge, chg: WATCHLIST[0].chg, dir: WATCHLIST[0].dir
+  };
+
+  document.getElementById("wlList").innerHTML = WATCHLIST.map(function(r, i){
+    return '<div class="wl-row' + (r.active ? " active" : "") + '" data-idx="' + i + '">' +
       '<div class="sym"><div class="top">' + r.sym + ' <span class="badge">' + r.badge + '</span></div><div class="exch">' + r.exch + '</div></div>' +
       '<div class="px"><div class="p mono">' + r.px + '</div><div class="c mono ' + r.dir + '">' + r.chg + '</div></div>' +
     '</div>';
   }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll(".wl-row"), function(el){
+    el.onclick = function(){ selectInstrument(parseInt(el.getAttribute("data-idx"), 10)); };
+  });
+
+  function selectInstrument(idx){
+    var r = WATCHLIST[idx];
+    Array.prototype.forEach.call(document.querySelectorAll(".wl-row"), function(el, i){
+      el.classList.toggle("active", i === idx);
+    });
+    currentInstrument = { sym: r.sym, exch: r.exch, price: parseFloat(r.px), badge: r.badge, chg: r.chg, dir: r.dir };
+
+    document.getElementById("symName").textContent = r.sym;
+    document.getElementById("symSignals").textContent = r.badge + " signals";
+    document.getElementById("symPrice").textContent = r.px;
+    var symChangeEl = document.getElementById("symChange");
+    symChangeEl.textContent = r.chg;
+    symChangeEl.className = r.dir + " mono";
+    document.getElementById("symExch").textContent = r.exch;
+    document.getElementById("toolbarSym").textContent = r.sym;
+
+    // Decorative tick-size proxy, scaled to the instrument's price band - not real exchange tick data
+    var tick = Math.max(0.01, Math.round(currentInstrument.price * 0.0005 * 100) / 100);
+    var sellPx = (currentInstrument.price - tick).toFixed(2);
+    var buyPx = currentInstrument.price.toFixed(2);
+    document.getElementById("otSellPrice").textContent = sellPx;
+    document.getElementById("otBuyPrice").textContent = buyPx;
+    document.getElementById("overlaySymLine").textContent = r.sym + " · 1 · " + r.exch;
+    var tinyPct = ((tick / currentInstrument.price) * 100).toFixed(2);
+    document.getElementById("overlayOhlc").innerHTML =
+      '<span>O<span class="o-hi">' + buyPx + '</span></span>' +
+      '<span>H<span class="o-hi">' + buyPx + '</span></span>' +
+      '<span>L' + sellPx + '</span>' +
+      '<span>C' + buyPx + '</span>' +
+      '<span class="up">+' + tick.toFixed(2) + ' (+' + tinyPct + '%)</span>';
+
+    // Any open/cached analysis belonged to the previous instrument - reset it rather than show stale data
+    aiPane.classList.remove("open");
+    hasResult = false;
+    lastAnalyzedMode = null;
+    mode = "quick";
+    setModeActive("quick");
+    renderIdlePane();
+
+    renderChart();
+  }
 
   // ---------- candlestick chart ----------
-  function genCandles(n, base){
-    var seed = 42, candles = [];
+  function hashSeed(s){
+    var h = 42;
+    for (var i = 0; i < s.length; i++){ h = (h * 31 + s.charCodeAt(i)) % 9973; }
+    return h || 42;
+  }
+  function genCandles(n, base, seedStr){
+    var seed = seedStr ? hashSeed(seedStr) : 42, candles = [];
     function rnd(){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
     var price = base;
     for (var i = 0; i < n; i++){
@@ -650,7 +711,7 @@
     return candles;
   }
   function renderChart(setupLines){
-    var candles = genCandles(70, 20.95);
+    var candles = genCandles(70, currentInstrument.price, currentInstrument.sym + currentInstrument.exch);
     var w = 1000, h = 420, padT = 10, padB = 90, padR = 4, padL = 4;
     var plotH = h - padT - padB;
     var volH = 70, volTop = h - padB + 8;
@@ -732,35 +793,44 @@
 
   // ---------- AI entry point ----------
   var mode = "quick";
+  var hasResult = false;        // true once at least one analysis has completed
+  var lastAnalyzedMode = null;  // which mode the currently-cached result belongs to
   var btnAnalyse = document.getElementById("btnAnalyse");
   var aiTriggerIcon = document.getElementById("aiTriggerIcon");
   var paneModeToggle = document.getElementById("paneModeToggle");
+  var paneGoBtn = document.getElementById("paneGoBtn");
   var aiPane = document.getElementById("aiPane");
   var aiPaneSub = document.getElementById("aiPaneSub");
   var aiPaneBody = document.getElementById("aiPaneBody");
   var aiPaneFoot = document.getElementById("aiPaneFoot");
   var btnClosePane = document.getElementById("btnClosePane");
-  var paneOpened = false;
 
-  btnClosePane.onclick = function(){ aiPane.classList.remove("open"); renderChart(); };
+  function setModeActive(m){
+    Array.prototype.forEach.call(paneModeToggle.querySelectorAll(".mode-btn-pane"), function(b){
+      b.classList.toggle("active", b.getAttribute("data-mode") === m);
+    });
+  }
 
+  // Closing (either the X or re-clicking the toolbar button) just hides the pane -
+  // it doesn't discard the analysis or the chart levels, so reopening is instant.
+  btnClosePane.onclick = function(){ aiPane.classList.remove("open"); };
+
+  // Quick/Deep are pure selectors now - they never trigger analysis by themselves.
   Array.prototype.forEach.call(paneModeToggle.querySelectorAll(".mode-btn-pane"), function(btn){
     btn.onclick = function(){
-      var newMode = btn.getAttribute("data-mode");
-      if (newMode === mode) return;
-      mode = newMode;
-      Array.prototype.forEach.call(paneModeToggle.querySelectorAll(".mode-btn-pane"), function(b){ b.classList.toggle("active", b === btn); });
-      runAnalysis(mode);
+      mode = btn.getAttribute("data-mode");
+      setModeActive(mode);
     };
   });
+  paneGoBtn.onclick = function(){ runAnalysis(mode); };
 
   function renderIdlePane(){
     aiPaneFoot.style.display = "none";
-    aiPaneSub.textContent = "YESBANK · BSE";
+    aiPaneSub.textContent = currentInstrument.sym + " · " + currentInstrument.exch;
     aiPaneBody.innerHTML =
       '<div class="ai-state-idle">' +
         '<div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.4 4.6L18 8l-4.6 1.4L12 14l-1.4-4.6L6 8l4.6-1.4z"/></svg></div>' +
-        '<div>Pick a mode and click <b>Analyse with AI</b> on the chart toolbar to generate a setup for YESBANK.</div>' +
+        '<div>Pick a mode and click <b>Analyse with AI</b> on the chart toolbar to generate a setup for ' + currentInstrument.sym + '.</div>' +
       '</div>';
   }
 
@@ -788,47 +858,52 @@
     return iv;
   }
 
-  var RESULTS = {
-    quick: {
-      seconds: 8,
+  // Builds setup content relative to whichever instrument is active, so the
+  // numbers always stay internally consistent instead of being YESBANK-only.
+  function buildSetup(selectedMode, price){
+    var isDeep = selectedMode === "deep";
+    function p(n){ return n.toFixed(2); }
+    var breakout = price * 0.9976;
+    var rejection = price * 1.0014;
+    var entry = price * 0.9962;
+    var stopLoss = entry * (isDeep ? 0.9886 : 0.9904);
+    var target = entry * (isDeep ? 1.0192 : 1.0144);
+    return {
+      seconds: isDeep ? 31 : 8,
       direction: "bullish",
-      confidence: 62,
-      rationale: "The uptrend is intact and today's breakout above 20.70 came on strong volume. Price was rejected at 20.95 and momentum is cooling, so the better entry is a retest of 20.80 rather than buying at current levels.",
-      entry: "20.80", stopLoss: "20.60", target: "21.10",
-      favourable: [
-        "Breakout above 20.70 closed on the day's highest volume in two weeks.",
+      confidence: isDeep ? 71 : 62,
+      rationale: "The uptrend is intact and today's breakout above " + p(breakout) + " came on " +
+        (isDeep ? "the highest volume in two weeks, with the options chain showing fresh call buildup near the money." : "strong volume.") +
+        " Price was rejected" + (isDeep ? " once" : "") + " at " + p(rejection) + " and momentum is cooling" +
+        (isDeep ? " on the 15-minute chart" : "") + ", so the better entry is a retest of " + p(entry) +
+        (isDeep ? " rather than chasing the current level." : " rather than buying at current levels."),
+      entry: p(entry), stopLoss: p(stopLoss), target: p(target),
+      favourable: isDeep ? [
+        "Breakout above " + p(breakout) + " closed on the day's highest volume in two weeks.",
+        "Price has held above the 20-period moving average for six straight sessions.",
+        "Fresh call OI buildup suggests positioning for further upside."
+      ] : [
+        "Breakout above " + p(breakout) + " closed on the day's highest volume in two weeks.",
         "Price has held above the 20-period moving average for six straight sessions."
       ],
-      risks: [
+      risks: isDeep ? [
         "RSI is flattening near 60, signalling momentum may be fading before the target is reached.",
-        "A retest of 20.80 that fails to hold would invalidate this setup quickly."
-      ],
-      trace: ["Read price action...", "Checked key levels...", "Composed the setup..."]
-    },
-    deep: {
-      seconds: 31,
-      direction: "bullish",
-      confidence: 71,
-      rationale: "The uptrend is intact and today's breakout above 20.70 came on the highest volume in two weeks, with the options chain showing fresh call buildup at the 21 strike. Price was rejected once at 20.95 and momentum is cooling on the 15-minute chart, so the better entry is a retest of 20.80 rather than chasing the current level.",
-      entry: "20.80", stopLoss: "20.58", target: "21.20",
-      favourable: [
-        "Breakout above 20.70 closed on the day's highest volume in two weeks.",
-        "Price has held above the 20-period moving average for six straight sessions.",
-        "Fresh call OI buildup at the 21 strike suggests positioning for further upside."
-      ],
-      risks: [
-        "RSI is flattening near 60, signalling momentum may be fading before the target is reached.",
-        "A retest of 20.80 that fails to hold would invalidate this setup quickly.",
+        "A retest of " + p(entry) + " that fails to hold would invalidate this setup quickly.",
         "Broader market breadth is mixed today, which can cap follow-through on individual names."
+      ] : [
+        "RSI is flattening near 60, signalling momentum may be fading before the target is reached.",
+        "A retest of " + p(entry) + " that fails to hold would invalidate this setup quickly."
       ],
-      trace: ["Read price action and volume...", "Cross-checked multiple timeframes...", "Scanned option chain and OI...", "Composed the setup..."]
-    }
-  };
+      trace: isDeep
+        ? ["Read price action and volume...", "Cross-checked multiple timeframes...", "Scanned option chain and OI...", "Composed the setup..."]
+        : ["Read price action...", "Checked key levels...", "Composed the setup..."]
+    };
+  }
 
   function renderResultPane(selectedMode){
-    var r = RESULTS[selectedMode];
+    var r = buildSetup(selectedMode, currentInstrument.price);
     var isBullish = r.direction === "bullish";
-    aiPaneSub.textContent = "YESBANK · BSE";
+    aiPaneSub.textContent = currentInstrument.sym + " · " + currentInstrument.exch;
     aiPaneFoot.style.display = "block";
     renderChart({ entry: parseFloat(r.entry), stopLoss: parseFloat(r.stopLoss), target: parseFloat(r.target) });
     aiPaneBody.innerHTML =
@@ -859,28 +934,43 @@
     };
   }
 
-  function runAnalysis(selectedMode){
-    btnAnalyse.disabled = true;
-    aiTriggerIcon.outerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="aiTriggerIcon" class="spin-ic"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>';
+  function setBusy(busy){
+    btnAnalyse.disabled = busy;
+    paneGoBtn.disabled = busy;
+    Array.prototype.forEach.call(paneModeToggle.querySelectorAll(".mode-btn-pane"), function(b){ b.disabled = busy; });
+    aiTriggerIcon.outerHTML = busy
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="aiTriggerIcon" class="spin-ic"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="aiTriggerIcon"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>';
     aiTriggerIcon = document.getElementById("aiTriggerIcon");
+  }
+
+  function runAnalysis(selectedMode){
+    setBusy(true);
     var iv = renderLoadingPane(selectedMode);
     var duration = selectedMode === "deep" ? 2600 : 1400;
     setTimeout(function(){
       clearInterval(iv);
       renderResultPane(selectedMode);
-      btnAnalyse.disabled = false;
-      aiTriggerIcon.outerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="aiTriggerIcon"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>';
-      aiTriggerIcon = document.getElementById("aiTriggerIcon");
+      hasResult = true;
+      lastAnalyzedMode = selectedMode;
+      setBusy(false);
     }, duration);
   }
 
+  // Toolbar button: toggles the pane. First-ever click auto-runs Quick; closing
+  // and re-clicking just re-shows the last analysis instantly, no re-run.
   btnAnalyse.onclick = function(){
+    if (aiPane.classList.contains("open")){
+      aiPane.classList.remove("open");
+      return;
+    }
     aiPane.classList.add("open");
-    if (!paneOpened){
-      paneOpened = true;
+    if (!hasResult){
       requestAnimationFrame(function(){ runAnalysis(mode); });
     } else {
-      runAnalysis(mode);
+      mode = lastAnalyzedMode;
+      setModeActive(mode);
+      renderResultPane(lastAnalyzedMode);
     }
   };
 
@@ -930,6 +1020,12 @@
     omsSetup = setup;
     omsQty = 1;
     omsSide = setup.direction === "bearish" ? "sell" : "buy";
+    document.getElementById("omsSymRow").firstChild.textContent = currentInstrument.sym + " ";
+    document.getElementById("omsLtp").textContent = currentInstrument.price.toFixed(2);
+    document.getElementById("omsChg").textContent = currentInstrument.chg;
+    document.getElementById("omsChg").className = currentInstrument.dir + " mono";
+    document.getElementById("omsExch").firstChild.textContent = currentInstrument.exch + " ";
+    document.getElementById("omsAltExch").textContent = (currentInstrument.exch === "BSE" ? "NSE " : "BSE ") + currentInstrument.price.toFixed(2);
     Array.prototype.forEach.call(document.querySelectorAll('#omsSideSeg .oms-seg-btn'), function(b){
       b.classList.toggle("active", b.getAttribute("data-side") === omsSide);
     });
